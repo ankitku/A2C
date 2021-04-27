@@ -1,0 +1,3 @@
+[submodule "interface"]
+	path = interface
+	url = https://gitlab.com/acl2s/external-tool-support/interface.git
