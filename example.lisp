@@ -77,12 +77,6 @@
 
 (check= (subset '(1 1 3) '(1 2 3)) t)
 
-
-
-
-
-
-
 (include-book "interface/top")
 
 :q
@@ -123,6 +117,15 @@
          (sb-ext:exit)))
 
 
+(defun query-function-total (elem-def state-def txf)
+  (let ((es (gen-sym-pred elem-def))
+	(ss (gen-sym-pred state-def))
+        (domain (strip-cars txf)))
+    (itest?-query
+       `acl2s::(=> (and (,es e) (,ss s))
+		   (in (list s e) ',domain)))))
+
+
 ;; generates defdata events while also checking if input is actually a DFA
 (defun mk-dfa-events (name states alphabet start accept transition-fun)
   (let* ((d-state (gen-symb "~a-state" name))
@@ -146,6 +149,10 @@
       (error-and-reset "incorrect accept states" d-state))
     (acl2s-event `acl2s::(defdata ,d-tdom (list ,d-state ,d-elem)))
     (acl2s-event `acl2s::(defdata ,d-f (map ,d-tdom ,d-state)))
+    (let ((res (query-function-total d-elem d-state transition-fun)))
+      (unless (not (car res))
+       (error-and-reset (format nil "transition function is not defined for
+inputs : ~a" (cdr res)) d-state)))
     (unless (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun))))
        (error-and-reset "incorrect transition function" d-state))
     (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
@@ -200,12 +207,17 @@
 	(dfa1 (gen-symb-const dfa1-name))
 	(dfa2 (gen-symb-const dfa2-name)))
     (if (car res)
-	(error-and-reset "incorrect alphabet provided"
+	(error-and-reset "Incorrect alphabet provided."
 			 (gen-symb "~a-state" dfa2-name))
-      (itest?-query
-       `acl2s::(=> (,dn w)
-		   (equal (accept-dfa ,dfa1 w)
-			  (accept-dfa ,dfa2 w)))))))
+      (let ((res (itest?-query
+                  `acl2s::(=> (,dn w)
+                              (equal (accept-dfa ,dfa1 w)
+                                     (accept-dfa ,dfa2 w))))))
+        (if (car res)
+            (format nil "Transition function error. The following words
+  were misclassified :~% ~a" (mapcar #'cadar (car (cdr res)))
+                             (gen-symb "~a-state" dfa2-name))
+          (format nil "~a is correct." dfa2-name))))))
 
 ;;------------------------------------------------------------------------
 ;; PAPER EXAMPLES
@@ -227,33 +239,49 @@
 (gen-dfa
  :name           stud-dfa1
  :states         (e1 e2 o1 o2)
- :alphabet       (1)
+ :alphabet       (0)
  :start          e1   
  :accept         (o1 o2)
  :transition-fun ((e1 0 e1)
-		  (e1 1 o1)
+		  (e1 2 o1)
 		  (e2 0 e2)
-		  (e2 1 o2)
+		  (e2 2 o2)
 		  (o1 0 o2)
-		  (o1 1 e2)
+		  (o1 2 e2)
 		  (o2 0 o1)
-		  (o2 1 o1)))
+		  (o2 2 o1)))
+
+
+(gen-dfa
+ :name           stud-dfa11
+ :states         (e1 e2 o1 o2)
+ :alphabet       (0 2 3)
+ :start          e1   
+ :accept         (o1 o2)
+ :transition-fun ((e1 0 e1)
+		  (e1 2 o1)
+		  (e2 0 e2)
+		  (e2 2 o2)
+		  (o1 0 o2)
+		  (o1 2 e2)
+		  (o2 0 o1)
+		  (o2 2 o1)))
 
 
 (gen-dfa
  :name           stud-dfa2
  :states         (e1 e2 o1 o2)
- :alphabet       (0 1 2)
+ :alphabet       (0 2)
  :start          e1   
  :accept         (o1 o2)
  :transition-fun ((e1 0 e1)
-		  (e1 1 o1)
+		  (e1 2 o1)
 		  (e2 0 e2)
-		  (e2 1 o2)
+		  (e2 2 o2)
 		  (o1 0 o2)
-		  (o1 1 e2)
+		  (o1 2 e2)
 		  (o2 0 o1)
-		  (o2 1 o1)))
+		  (o2 2 o1)))
 
 (query-equivalence 'instr-dfa 'stud-dfa2)
 
