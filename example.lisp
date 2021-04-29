@@ -322,41 +322,6 @@ inputs : ~a" (cdr res)) d-state)))
 (query-equivalence 'instr-dfa 'stud-dfa4)
 
 
-;; f1 is instructor file (minimal and correct).
-;; f2 is student file (may be buggy)
-(defun check-dfa-input-run (f1 f2 w)
-  (let* ((dfa1 (eval (with-open-file (infile f1) (read infile))))
-	 (dfa2 (eval (with-open-file (infile f2) (read infile))))
-	 (dfa2st (gen-symb "~a-state" (first dfa2))))
-    ;; Check if student is using same alphabet
-    (unless (and (subset (third dfa1) (third dfa2))
-		 (subset (third dfa2) (third dfa1)))
-      (error-and-reset "incorrect alphabet provided"
-		       (gen-symb "~a-state" (first dfa2))))
-    ;;we find state-word maps of dfa2, then map those states to dfa1 (assumed minimal)
-    (if (equal (run-dfa (cdr dfa1) w)
-	       (run-dfa (cdr dfa2) w))
-	(print (format t "[Passed test case]"))
-      (print (format t "[Failed test case]")))
-    ))
-
-
-;; f1 is instructor file (minimal and correct).
-;; f2 is student file (may be buggy)
-(defun check-dfa-equivalence (f1 f2)
-  (let* ((dfa1 (eval (with-open-file (infile f1) (read infile))))
-	 (dfa2 (eval (with-open-file (infile f2) (read infile))))
-	 (dfa2st (gen-symb "~a-state" (first dfa2))))
-    (let ((res (query-equivalence (car dfa1) (cdr dfa1) (car dfa2 )(cdr dfa2))))
-      (reset-dfa-def dfa2st)
-      (if (car res)
-	  (print (format t "[Following words do not lead to the correct state :~a]" (cdr res)))
-	(print (format t "[Passed equivalence check!]")))
-      )))
-
-
-
-
 
 
 
