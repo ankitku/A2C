@@ -156,7 +156,7 @@
 			 (if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
 			     (error-and-reset "incorrect transition function" d-state)
 			   (progn (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
-				  `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))))))))))
+				  (cons t (format nil "Valid DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))))))))))))
 
 
 
