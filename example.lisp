@@ -1,5 +1,6 @@
 (in-package "ACL2S")
 
+(include-book "interface/top")
 
 (defdata state          var)
 (defdata states         (listof state))
@@ -77,8 +78,6 @@
 
 (check= (subset '(1 1 3) '(1 2 3)) t)
 
-(include-book "interface/top")
-
 :q
 (in-package "ACL2S")
 (declaim (optimize (safety 3) (speed 0) (space 0) (debug 3)))
@@ -113,8 +112,7 @@
 
 (defun error-and-reset (msg def)
   (progn (reset-dfa-def def)
-	 (error (format nil "[~a]" msg))
-         (sb-ext:exit)))
+	 (cons nil (format nil "[~a]" msg))))
 
 
 (defun query-function-total (elem-def state-def txf)
@@ -138,34 +136,32 @@
 	 (d-fp (gen-sym-pred d-f))
 	 (dfa-name (gen-symb-const name)))
     (acl2s-event `acl2s::(defdata ,d-state  (enum (quote ,states))))
-    (unless (statesp `acl2s::,states) (error-and-reset "incorrect states" d-state))
-    (acl2s-event `acl2s::(defdata ,d-states (listof ,d-state)))
-    (acl2s-event `acl2s::(defdata ,d-elem  (enum (quote ,alphabet))))
-    (acl2s-event `acl2s::(defdata ,d-word (listof ,d-elem)))
-    (acl2s-event `acl2s::(defdata ,d-ab ,d-word))
-    (unless (alphabetp `acl2s::,alphabet) (error-and-reset "incorrect alphabet" d-state))
-    (unless (in start `acl2s::,states) (error-and-reset "incorrect start state" d-state))
-    (unless (subset `acl2s::,accept `acl2s::,states)
-      (error-and-reset "incorrect accept states" d-state))
-    (acl2s-event `acl2s::(defdata ,d-tdom (list ,d-state ,d-elem)))
-    (acl2s-event `acl2s::(defdata ,d-f (map ,d-tdom ,d-state)))
-    (let ((res (query-function-total d-elem d-state transition-fun)))
-      (unless (not (car res))
-       (error-and-reset (format nil "transition function is not defined for
-inputs : ~a" (cdr res)) d-state)))
-    (unless (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun))))
-       (error-and-reset "incorrect transition function" d-state))
-    (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
-    (unless (not (dfap dfa-name))
-	(error-and-reset "incorrect dfa" d-state))))
+    (if (not (statesp `acl2s::,states))
+	(error-and-reset "incorrect states" d-state)
+      (progn (acl2s-event `acl2s::(defdata ,d-states (listof ,d-state)))
+	     (acl2s-event `acl2s::(defdata ,d-elem  (enum (quote ,alphabet))))
+	     (acl2s-event `acl2s::(defdata ,d-word (listof ,d-elem)))
+	     (acl2s-event `acl2s::(defdata ,d-ab ,d-word))
+	     (if (not (in start `acl2s::,states))
+		 (error-and-reset "incorrect start state" d-state)
+	       (progn
+		 (if (not (subset `acl2s::,accept `acl2s::,states))
+		     (error-and-reset "incorrect accept states" d-state)
+		   (progn 
+		     (acl2s-event `acl2s::(defdata ,d-tdom (list ,d-state ,d-elem)))
+		     (acl2s-event `acl2s::(defdata ,d-f (map ,d-tdom ,d-state)))
+		     (let ((res (query-function-total d-elem d-state transition-fun)))
+		       (if (car res)
+			   (error-and-reset (format nil "transition function is not defined for inputs : ~a" (cdr res)) d-state)
+			 (if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
+			     (error-and-reset "incorrect transition function" d-state)
+			   (progn (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
+				  `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))))))))))
 
 
 
 (defun gen-dfa-fn (&key name states alphabet start accept transition-fun)
- (let* ((df `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))
-    (mk-dfa-events name states alphabet start accept transition-fun)
-    (cons name df)))
-
+  (mk-dfa-events name states alphabet start accept transition-fun))
 
 (defun convert-trx-fun (tf)
   (if (endp tf)
@@ -214,10 +210,10 @@ inputs : ~a" (cdr res)) d-state)))
                               (equal (accept-dfa ,dfa1 w)
                                      (accept-dfa ,dfa2 w))))))
         (if (car res)
-            (format nil "Transition function error. The following words
+            (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (mapcar #'cadar (car (cdr res)))
-                             (gen-symb "~a-state" dfa2-name))
-          (format nil "~a is correct." dfa2-name))))))
+  (gen-symb "~a-state" dfa2-name)))
+          (cons t (format nil "~a is correct." dfa2-name)))))))
 
 ;;------------------------------------------------------------------------
 ;; PAPER EXAMPLES
@@ -236,94 +232,30 @@ inputs : ~a" (cdr res)) d-state)))
 		  (odd  1 even)))
 
 
-(gen-dfa
- :name           stud-dfa1
- :states         (e1 e2 o1 o2)
- :alphabet       (0)
- :start          e1   
- :accept         (o1 o2)
- :transition-fun ((e1 0 e1)
-		  (e1 2 o1)
-		  (e2 0 e2)
-		  (e2 2 o2)
-		  (o1 0 o2)
-		  (o1 2 e2)
-		  (o2 0 o1)
-		  (o2 2 o1)))
+
+;; load acl2s grading infrastructure
+(load "autograder_raw_code.lsp")
+
+(defun run-tests ()
+  ;; Load the student submission
+  (let ((rr (with-open-file (s "student.lisp")
+		(read s))))
+    (grade "test-valid-dfa"
+	   10
+	   (eval rr)))
+
+  ;; Grade form to grade student submission
+  (grade "test-equivalence"          ;; test case name
+	 10                          ;; points allocated to this test
+	 (query-equivalence 'instr-dfa 'student-dfa))  ;; should return (bool . string)
+  (finish-grading))
 
 
-(gen-dfa
- :name           stud-dfa11
- :states         (e1 e2 o1 o2)
- :alphabet       (0 2 3)
- :start          e1   
- :accept         (o1 o2)
- :transition-fun ((e1 0 e1)
-		  (e1 2 o1)
-		  (e2 0 e2)
-		  (e2 2 o2)
-		  (o1 0 o2)
-		  (o1 2 e2)
-		  (o2 0 o1)
-		  (o2 2 o1)))
-
-
-(gen-dfa
- :name           stud-dfa2
- :states         (e1 e2 o1 o2)
- :alphabet       (0 2)
- :start          e1   
- :accept         (o1 o2)
- :transition-fun ((e1 0 e1)
-		  (e1 2 o1)
-		  (e2 0 e2)
-		  (e2 2 o2)
-		  (o1 0 o2)
-		  (o1 2 e2)
-		  (o2 0 o1)
-		  (o2 2 o1)))
-
-(query-equivalence 'instr-dfa 'stud-dfa2)
-
-(gen-dfa
- :name           stud-dfa3
- :states         (e1 e2 o1 o2)
- :alphabet       (0 1)
- :start          e1   
- :accept         (o1 o2)
- :transition-fun ((e1 0 e1)
-		  (e1 1 o1)
-		  (e2 0 e2)
-		  (e2 1 e2)
-		  (o1 0 o2)
-		  (o1 1 e2)
-		  (o2 0 o1)
-		  (o2 1 e1)))
-
-(query-equivalence 'instr-dfa 'stud-dfa3)
-
-(run-dfa *stud-dfa3* '(1 1 1))
-
-(gen-dfa
- :name  stud-dfa4
- :states  (e1 e2 o1 o2)
- :alphabet       (0 1)
- :start          e1   
- :accept         (o1 o2)
- :transition-fun ((e1 0 e1)
-		  (e1 1 o1)
-		  (e2 0 e2)
-		  (e2 1 o2)
-		  (o1 0 o2)
-		  (o1 1 e2)
-		  (o2 0 o1)
-		  (o2 1 e1)))
-
-(query-equivalence 'instr-dfa 'stud-dfa4)
-
-
-
-
-
+;; the following command is necessary to create an executable
+;; named run_autograder according to gradescope specification
+(save-exec "run_autograder" nil
+           :init-forms '((set-gag-mode nil)
+                         (value :q))
+           :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::run-tests)' --disable-debugger")
 
 
