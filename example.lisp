@@ -238,7 +238,7 @@
 
 (defun run-tests ()
   ;; Load the student submission
-  (let ((rr (with-open-file (s "student.lisp")
+  (let ((rr (with-open-file (s "submission/student.lisp")
 		(read s))))
     (grade "test-valid-dfa"
 	   10
