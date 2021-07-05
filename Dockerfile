@@ -17,5 +17,6 @@ WORKDIR /autograder
 
 RUN mkdir results
 RUN cd interface && make && cd ..
+RUN cd dfa && ./make.sh && cd ..
 
 RUN acl2s < example.lisp
