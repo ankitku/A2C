@@ -168,7 +168,7 @@
 (gen-dfa
  :name           instr-dfa
  :states         (even odd)
- :alphabet       (0)
+ :alphabet       (0 1)
  :start          even
  :accept         (odd)
  :transition-fun ((even 0 even)

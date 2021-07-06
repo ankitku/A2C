@@ -12,6 +12,9 @@
 ;; load dfa grading library and instructor's solution
 (load "dfa/dfa_raw_code.lsp")
 
+(in-package "ACL2S")
+
+
 (defun run-tests ()
   ;; Load the student submission
   (let ((rr (with-open-file (s "submission/student.lisp")
@@ -32,6 +35,6 @@
 (save-exec "run_autograder" nil
            :init-forms '((set-gag-mode nil)
                          (value :q))
-           :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::run-tests)' --disable-debugger")
+          :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::run-tests)' --disable-debugger")
 
 
