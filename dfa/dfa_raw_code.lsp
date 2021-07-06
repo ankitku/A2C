@@ -40,9 +40,28 @@
 	(ss (gen-sym-pred state-def))
         (domain (strip-cars txf)))
     (itest?-query
-       `acl2s::(=> (and (,es e) (,ss s))
-		   (in (list s e) ',domain)))))
+       `acl2s::(=> (and (,es element=) (,ss state=))
+		   (in (list state= element=) ',domain)))))
 
+(defun query-function-distinctdom (txf)
+  (let ((domain (strip-cars txf)))
+    (not (== (len domain)
+             (len (remove-duplicates domain :test 'equal))))))
+
+(defun possible-domains (txf)
+  (if (endp txf) nil
+    (cons (second (caar txf))
+          (extract-fun-elems (cdr txf)))))
+
+(defun query-extra-functiondom (elem-def state-def txf)
+  (let ((es (gen-sym-pred elem-def))
+	(ss (gen-sym-pred state-def))
+        (doma (strip-cars txf)))
+    (itest?-query
+     `acl2s::(=> (in state-element-pair= (quote ,doma))
+                 (and  (,ss (first state-element-pair=))
+                       (,es (second state-element-pair=)))))))
+                     
 
 ;; generates defdata events while also checking if input is actually a DFA
 (defun mk-dfa-events (name states alphabet start accept transition-fun)
@@ -73,10 +92,16 @@
 		     (let ((res (query-function-total d-elem d-state transition-fun)))
 		       (if (car res)
 			   (error-and-reset (format nil "transition function is not defined for inputs : ~a" (cdr res)) d-state)
-			 (if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
-			     (error-and-reset "incorrect transition function" d-state)
-			   (progn (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
-				  (cons t (format nil "Valid DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))))))))))))
+                         (let ((res (query-function-distinctdom transition-fun)))
+                           (if res (error-and-reset "transition function domain is not distinct" d-state)
+                             (let ((res (query-extra-functiondom d-elem d-state transition-fun)))
+                               (if (car res)
+                                   (error-and-reset (format nil "Extra domain in transition function : ~a" (cdr res)) d-state)
+                                 ;;(if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
+                                 ;; with all the other checks we added for functions, we do not really need to enforce it as a map
+                                   ;;  (error-and-reset "incorrect transition function" d-state)
+                                   (progn (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
+                                          (cons t (format nil "Valid DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept))))))))))))))))))
 
 
 
@@ -143,7 +168,7 @@
 (gen-dfa
  :name           instr-dfa
  :states         (even odd)
- :alphabet       (0 1)
+ :alphabet       (0)
  :start          even
  :accept         (odd)
  :transition-fun ((even 0 even)
