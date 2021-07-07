@@ -17,7 +17,8 @@ WORKDIR /autograder
 RUN git submodule update --init --recursive
 RUN git submodule foreach git pull origin master
 RUN cd gradescope-acl2s/interface && make && cd ../..
-RUN cd dfa && ./make.sh && cd ..
+# RUN cd dfa && ./make.sh && cd ..
+RUN cd tm && ./make.sh && cd ..
 
 RUN mkdir results
-RUN acl2s < example.lisp
+RUN acl2s < example2.lisp
