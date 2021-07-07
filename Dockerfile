@@ -15,6 +15,7 @@ RUN sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)'
 WORKDIR /autograder
 
 RUN git submodule update --init --recursive
+RUN git submodule foreach git pull origin master
 RUN cd gradescope-acl2s/interface && make && cd ../..
 RUN cd dfa && ./make.sh && cd ..
 

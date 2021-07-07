@@ -103,7 +103,7 @@
                                  ;; with all the other checks we added for functions, we do not really need to enforce it as a map
                                    ;;  (error-and-reset "incorrect transition function" d-state)
                                    (progn (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
-                                          (cons t (format nil "Valid DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept))))))))))))))))))
+                                          (cons t (format nil "Legal DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept))))))))))))))))))
 
 
 
