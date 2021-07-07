@@ -96,7 +96,7 @@
                            (if res (error-and-reset "transition function domain is not distinct" d-state)
                              (let ((res (query-extra-functiondom d-elem d-state transition-fun)))
                                (if (car res)
-                                   (error-and-reset (format nil "Extra domain in transition function : ~a" (cdr res)) d-state)
+                                   (error-and-reset (format nil "Domain of transition function is not of type :states x alphabet : ~a" (cdr res)) d-state)
                                  ;;(if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
                                  ;; with all the other checks we added for functions, we do not really need to enforce it as a map
                                    ;;  (error-and-reset "incorrect transition function" d-state)
