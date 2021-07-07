@@ -168,8 +168,6 @@
 	(t (and (equal (car exp) (car seq))
 		(prefixp (cdr exp) (cdr seq))))))
 
-(check= (prefixp '(1) '(1 2 3)) t)
-
 
 (defun check-tm-output (f1 expected w)
   (let* ((tm1 (eval (with-open-file (infile f1) (read infile))))
@@ -184,8 +182,6 @@
 	     (prefixp expected (remove-forward-nils (cdr res))))
         (format t "Passed test case]")
       (format t "Failed test case]"))))
-
-
 
 (defun query-equivalence (tm1-name tm2-name)
   (let (
