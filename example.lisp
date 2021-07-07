@@ -1,13 +1,12 @@
 (in-package "ACL2S")
 
-(include-book "interface/top")
+(include-book "gradescope-acl2s/interface/top")
 (include-book "dfa/dfa")
 
 :q
 
 ;; load acl2s grading infrastructure
-(load "autograder_raw_code.lsp")
-
+(load "gradescope-acl2s/autograder_raw_code.lsp")
 
 ;; load dfa grading library and instructor's solution
 (load "dfa/dfa_raw_code.lsp")
