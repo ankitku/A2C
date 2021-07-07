@@ -16,7 +16,7 @@
 
 (defun run-tests ()
   ;; Load the student submission
-  (let ((submittedform (load-lisp-file "samplesolution/student.lisp")))
+  (let ((submittedform (load-lisp-file "submission/student.lisp")))
     (grade "test-legal-dfa"
 	   10
 	   (eval submittedform)))
