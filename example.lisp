@@ -16,11 +16,10 @@
 
 (defun run-tests ()
   ;; Load the student submission
-  (let ((rr (with-open-file (s "submission/student.lisp")
-		(read s))))
-    (grade "test-valid-dfa"
+  (let ((submittedform (load-lisp-file "samplesolution/student.lisp")))
+    (grade "test-legal-dfa"
 	   10
-	   (eval rr)))
+	   (eval submittedform)))
 
   ;; Grade form to grade student submission
   (grade "test-equivalence"          ;; test case name

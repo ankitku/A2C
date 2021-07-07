@@ -1,0 +1,442 @@
+(in-package "ACL2S")
+
+
+(defdata state          var)
+(defdata states         (listof state))
+(defdata element        (oneof character var nil))
+(defdata word           (listof element))
+(defdata alphabet       word)
+(defdata stack-alphabet word)
+(defdata t-domain       (list state element element))
+(defdata t-range        (list state word))
+(defdata transition-fun (alistof t-domain t-range))
+(defdata lot-range      (listof t-range))
+
+(check= (statep 'even) t)
+(check= (elementp '#\() t)
+(check= (t-domainp '(q0 a z0)) t)
+(check= (t-rangep '(q0 (#\( z0))) t)
+(check= (transition-funp  '(((q0 #\( #\( ) . (q0 (#\( #\()))
+			    ((q0 #\( z0  ) . (q0 (#\( z0))))) t)
+
+
+(defdata pda (list states         ;all states
+                   alphabet       ;alphabet
+		   stack-alphabet ;alphabet
+                   transition-fun ;transition function
+                   state          ;start state
+                   element        ;start stack-state
+		   states         ;accepting states
+                   ))
+
+(definec pda-states (d :pda) :states
+  (car d))
+
+(definec pda-alphabet (d :pda) :alphabet
+  (second d))
+
+(definec pda-stack-alphabet (d :pda) :stack-alphabet
+  (third d))
+
+(definec pda-trans (d :pda) :transition-fun
+  (fourth d))
+
+(definec pda-start (d :pda) :state
+  (fifth d))
+
+(definec pda-start-stack (d :pda) :word
+  (list (sixth d)))
+
+(definec pda-accept (d :pda) :states
+  (seventh d))
+
+(defconst *pda-test*
+  (list '(q0 q1 q2)
+        '(#\( #\) )
+	'(z0  #\( )
+	'(((q0 #\( z0  ) . (q0 (#\( z0)))
+	  ((q0 #\( #\( ) . (q0 (#\( #\()))
+	  ((q0 #\) #\( ) . (q1 nil))
+	  ((q0 nil z0  ) . (q1 (z0)))
+	  ((q1 #\) #\( ) . (q1 nil))
+	  ((q1 #\( #\( ) . (q0 (#\( #\( )))
+	  ((q1 #\( z0  ) . (q0 (#\( z0 )))
+	  ((q1 nil z0  ) . (q2 (z0))))
+	'q0
+	'z0
+	'(q2)))
+
+
+(check= (pdap *pda-test*) t)
+
+
+
+
+;; utility functions
+(definec subset (a :tl b :tl) :bool
+  (cond ((endp a) t)
+	((in (car a) b) (subset (cdr a) b))
+	(t nil)))
+
+(check= (subset '(1 1 3) '(1 2 3)) t)
+
+
+(include-book "interface/top")
+
+:q
+(in-package "ACL2S")
+(declaim (optimize (safety 3) (speed 0) (space 0) (debug 3)))
+(declaim (sb-ext:muffle-conditions style-warning))
+
+(defun apply-trans (trans st el stk acc)
+  (cond ((or (endp trans) (equal st nil))
+	 (cons (list nil nil nil) acc))
+	((== (caar trans) (list st el (car stk)))
+	 (let* ((res (cdar trans))
+		(st2 (car res))
+		(stk2 (append (second res) (cdr stk))))
+	   (apply-trans (cdr trans) st el stk (cons (list st2 stk2) acc))))
+	(t (apply-trans (cdr trans) st el stk acc))))
+
+
+(apply-trans (pda-trans *pda-test*) 'q0 '#\( '(z0) nil)
+(apply-trans (pda-trans *pda-test*) 'q0 '#\) '(#\( z0) nil)
+(apply-trans (pda-trans *pda-test*) 'q0 nil '(#\( z0) nil) ;;nil nil nil as no transition
+
+
+(defun epsilon-closure (trans ls n)
+  (if (zp n)
+      ls
+    (epsilon-closure
+     trans
+     (append ls (flatten (mapcar (lambda (x) (apply-trans trans (car x) nil (second x) nil)) ls)))
+     (- n 1))))
+
+(epsilon-closure (pda-trans *pda-test*)
+		 '((Q0 (Z0)))
+		 3)
+		 
+  
+
+(defun apply-trans-nondeter (trans st el stk n)
+  (if (equal st nil)
+      nil
+  (let ((l (apply-trans trans st el stk nil)))
+    (epsilon-closure trans l n ))))
+
+(apply-trans-nondeter (pda-trans *pda-test*) 'q0 '#\( '(z0) 0)
+(apply-trans-nondeter (pda-trans *pda-test*) 'q0 '#\( '(z0) 2)
+(apply-trans-nondeter (pda-trans *pda-test*) 'q0 nil '(z0) 2)
+
+
+(defun clean-possible-states (ls)
+  (cond ((endp ls) nil)
+	((equal (car ls) '(nil nil nil))
+	 (clean-possible-states (cdr ls)))
+	(t (cons (car ls) (clean-possible-states (cdr ls))))))
+    
+
+;;listof state,top to listof state,top
+;;n is number of times epsilon closure is to be done
+(defun run-pda-nondeter (ls trans w n)
+  (cond ((endp w) (clean-possible-states ls))
+	(t (let* ((res (mapcar (lambda (x) (apply-trans-nondeter
+					trans
+					(first x)
+					(car w)
+					(second x)
+					n)) ls)))
+	     (run-pda-nondeter (clean-possible-states (flatten res)) trans (cdr w) n)))))
+
+(run-pda-nondeter '((q0 (z0))) '(((q0 #\( z0  ) . (q0 (#\( z0)))
+				 ((q0 #\( #\( ) . (q0 (#\( #\()))
+				 ((q0 #\) #\( ) . (q1 nil))
+				 ((q0 nil z0  ) . (q1 (z0)))
+				 ((q1 #\) #\( ) . (q1 nil))
+				 ((q1 #\( #\( ) . (q0 (#\( #\( )))
+				 ((q1 #\( z0  ) . (q0 (#\( z0 )))
+				 ((q1 nil z0  ) . (q2 (z0))))    '( #\( #\)) 0)
+
+(run-pda-nondeter '((q0 (z0))) '(((q0 #\( z0  ) . (q0 (#\( z0)))
+				 ((q0 #\( #\( ) . (q0 (#\( #\()))
+				 ((q0 #\) #\( ) . (q1 nil))
+				 ((q0 nil z0  ) . (q1 (z0)))
+				 ((q1 #\) #\( ) . (q1 nil))
+				 ((q1 #\( #\( ) . (q0 (#\( #\( )))
+				 ((q1 #\( z0  ) . (q0 (#\( z0 )))
+				 ((q1 nil z0  ) . (q2 (z0))))    '( #\( #\)) 3)
+;; we get to q2 because epsilon transitions have been enabled!
+
+(defun count-epsilon-trx (trans)
+  (reduce (lambda (n x) (if (equal (second (car x))
+			      nil) (+ n 1) n))
+	  trans
+	  :initial-value 0))
+		       
+
+(defun run-pda (p w)
+  (let* ((sts (pda-states p))
+	 (neww (if (endp w) '(nil) w))
+	 (n 5)
+	 (trans (pda-trans p))
+	 (ls   (epsilon-closure trans
+				(list (list (pda-start p)
+					    (pda-start-stack p)))
+				n))
+	 (possibles (run-pda-nondeter ls trans neww n))
+	 (possible-states (mapcar 'car possibles)))
+    (not (endp (intersection possible-states (pda-accept p))))))
+  
+;;T-cases
+(run-pda *pda-test* '(#\( #\)))
+(run-pda *pda-test* '(#\( #\( #\( #\) #\) #\)))
+(run-pda *pda-test* '(#\( #\) #\( #\( #\) #\) #\( #\)))
+(run-pda *pda-test* '())
+(run-pda *pda-test* '(#\( #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+
+
+;;F-cases
+(run-pda *pda-test* '(#\( #\) #\)))
+(run-pda *pda-test* '(#\( #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\)))
+(run-pda *pda-test* '(#\( #\) #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+(run-pda *pda-test* '(#\( #\) #\( #\( #\( #\) #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+
+
+
+
+
+
+(run-pda '((QSTART QLOOP QEND) (NIL #\( #\) #\a #\* #\+)
+ (#\( #\) #\a #\* #\+ #\e #\t #\f #\$)
+ (((QSTART NIL #\$) QLOOP (#\e #\$)) ((QLOOP NIL #\e) QLOOP (#\e #\+ #\t))
+  ((QLOOP NIL #\e) QLOOP (#\t)) ((QLOOP NIL #\t) QLOOP (#\t #\* #\f))
+  ((QLOOP NIL #\t) QLOOP (#\f)) ((QLOOP NIL #\f) QLOOP (#\( #\e #\)))
+  ((QLOOP NIL #\f) QLOOP (#\a)) ((QLOOP #\a #\a) QLOOP NIL)
+  ((QLOOP #\( #\() QLOOP NIL) ((QLOOP #\) #\)) QLOOP NIL)
+  ((QLOOP #\* #\*) QLOOP NIL) ((QLOOP #\+ #\+) QLOOP NIL)
+  ((QLOOP NIL #\$) QEND NIL))
+ QSTART #\$ (QEND)) '(#\a #\+ #\a #\* #\a))
+
+
+(run-pda '((QSTART QLOOP QEND) (NIL #\( #\) #\a #\* #\+)
+ (#\( #\) #\a #\* #\+ #\e #\t #\f #\$)
+ (((QSTART NIL #\$) QLOOP (#\e #\$)) ((QLOOP NIL #\e) QLOOP (#\e #\+ #\t))
+  ((QLOOP NIL #\e) QLOOP (#\t)) ((QLOOP NIL #\t) QLOOP (#\t #\* #\f))
+  ((QLOOP NIL #\t) QLOOP (#\f)) ((QLOOP NIL #\f) QLOOP (#\( #\e #\)))
+  ((QLOOP NIL #\f) QLOOP (#\a)) ((QLOOP #\a #\a) QLOOP NIL)
+  ((QLOOP #\( #\() QLOOP NIL) ((QLOOP #\) #\)) QLOOP NIL)
+  ((QLOOP #\* #\*) QLOOP NIL) ((QLOOP #\+ #\+) QLOOP NIL)
+  ((QLOOP NIL #\$) QEND NIL))
+ QSTART #\$ (QEND)) '(#\( #\a #\+ #\a #\* #\a #\)))
+
+
+(a+a.a).(a.(a+a)+a)
+
+
+;;--------------------------------------------------------------------------------
+
+
+
+
+
+;;------------------------------------------------------------------------
+;; Symbol name manipulation
+;;------------------------------------------------------------------------
+
+(defun gen-symb (x n)
+  (read-from-string (format nil x n)))
+
+(defun gen-sym-pred (x)
+  (gen-symb "~ap" x))
+
+(gen-sym-pred 'pda)
+
+;;------------------------------------------------------------------------
+;; PDA make/reset events generation
+;;------------------------------------------------------------------------
+
+(defun reset-history ()
+  (acl2s-event `acl2s::(ubt 1)))
+
+(defun reset-pda-def (d)
+  (acl2s-event `acl2s::(ubt ',(gen-sym-pred d))))
+
+(defun error-and-reset (msg def)
+  (progn (reset-pda-def def)
+	 (error (format nil "[~a]" msg))
+         (sb-ext:exit)))
+
+;; generates defdata events while also checking if input is actually a PDA
+(defun mk-pda-events (name states alphabet stack-alphabet
+			   start-state start-stack accept-state transition-fun)
+  (let* ((p-state (gen-symb "~a-state" name))
+	 (p-states (gen-symb "~a-states" name))
+	 (p-elem (gen-symb "~a-element" name))
+	 (p-word (gen-symb "~a-word" name))
+	 (p-ab (gen-symb "~a-alphabet" name))
+	 (p-stk-elem (gen-symb "~a-stk-element" name))
+	 (p-stk-word (gen-symb "~a-stk-word" name))
+	 (p-stk-ab (gen-symb "~a-stk-alphabet" name))
+	 (p-tdom (gen-symb "~a-t-domain" name))
+	 (p-trange (gen-symb "~a-t-range" name))
+	 (p-f (gen-symb "~a-transition-function" name))
+	 (p-fp (gen-sym-pred p-f)))
+    (acl2s-event `acl2s::(defdata ,p-state  (enum (quote ,states))))
+    (unless (statesp `acl2s::,states) (error-and-reset "incorrect states" p-state))
+    (acl2s-event `acl2s::(defdata ,p-states (listof ,p-state)))
+    (acl2s-event `acl2s::(defdata ,p-elem  (enum (quote ,alphabet))))
+    (acl2s-event `acl2s::(defdata ,p-word (listof ,p-elem)))
+    (acl2s-event `acl2s::(defdata ,p-ab ,p-word))
+    (acl2s-event `acl2s::(defdata ,p-stk-elem  (enum (quote ,stack-alphabet))))
+    (acl2s-event `acl2s::(defdata ,p-stk-word (listof ,p-stk-elem)))
+    (acl2s-event `acl2s::(defdata ,p-stk-ab ,p-stk-word))
+    (unless (in start-state `acl2s::,states) (error-and-reset (format t "incorrect start state ~a" start-state) p-state))
+    (unless (in start-stack `acl2s::,stack-alphabet) (error-and-reset "incorrect start state symbol" p-state))
+    (unless (subset `acl2s::,accept-state `acl2s::,states)
+      (error-and-reset "incorrect accept states" p-state))
+    (acl2s-event `acl2s::(defdata ,p-tdom (list ,p-state ,p-elem ,p-stk-elem)))
+    (acl2s-event `acl2s::(defdata ,p-trange (list ,p-state ,p-stk-word)))
+    (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange)))
+    (unless (second (acl2s-compute `acl2s::(,p-fp (quote ,transition-fun))))
+       (error-and-reset "incorrect transition function" p-state))
+    (acl2s-event `acl2s::(defdata ,name (list ,p-states ,p-ab ,p-stk-ab ,p-f ,p-state ,p-stk-elem ,p-states)))
+    (unless (pdap `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,start-stack ,accept-state))
+      (error-and-reset "incorrect pda" p-state))))
+
+
+(defconst *pda-test*
+  (list '(q0 q1 q2)
+        '(#\( #\) )
+	'(z0  #\( )
+	'(((q0 #\( z0  ) . (q0 (#\( z0)))
+	  ((q0 #\( #\( ) . (q0 (#\( #\()))
+	  ((q0 #\) #\( ) . (q1 nil))
+	  ((q0 nil z0  ) . (q1 (z0)))
+	  ((q1 #\) #\( ) . (q1 nil))
+	  ((q1 #\( #\( ) . (q0 (#\( #\( )))
+	  ((q1 #\( z0  ) . (q0 (#\( z0 )))
+	  ((q1 nil z0  ) . (q2 (z0))))
+	'q0
+	'z0
+	'(q2)))
+
+
+
+(defun gen-pda-fn (&key name states alphabet stack-alphabet start-state start-stack accept-state transition-fun)
+  (let* ((df `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,start-stack ,accept-state)))
+    (mk-pda-events name states alphabet stack-alphabet start-state start-stack accept-state transition-fun)
+    (cons name df)))
+
+
+
+(defmacro gen-pda (&key name states alphabet stack-alphabet start-state start-stack accept-state transition-fun)
+  (unless name (error "name missing"))
+  (unless states (error "states missing"))
+  (unless alphabet (error "alphabet missing"))
+  (unless stack-alphabet (error "stack alphabet missing"))
+  (unless start-state (error "start state missing"))
+  (unless start-stack (error "start stack symbol missing"))
+  (unless accept-state (error "accept states missing"))
+  (unless transition-fun (error "transition-fun missing"))
+  (let ((up-ab (cons nil alphabet)))
+  `(gen-pda-fn :name ',name
+	       :states ',states
+	       :alphabet ',up-ab
+	       :stack-alphabet ',stack-alphabet
+	       :start-state ',start-state
+	       :start-stack ',start-stack
+	       :accept-state ',accept-state
+	       :transition-fun ',transition-fun)))
+
+
+(defun check-pda-output (f1 expected w)
+  (let* ((pda1 (eval (with-open-file (infile f1) (read infile)))))
+    (if (equal expected (run-pda (cdr pda1) w))
+	(print (format t "[Passed test case]"))
+      (print (format t "[Failed test case]")))))
+
+;(check-pda-output "pda1.txt" nil '(#\( #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+;(check-pda-output "pda1.txt" t '(#\( #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+
+
+(defun check-pda-input-run (f1 f2 w)
+  (let* ((pda1 (eval (with-open-file (infile f1) (read infile))))
+	 (pda2 (eval (with-open-file (infile f2) (read infile))))
+	 (pda2st (gen-symb "~a-state" (first pda2))))
+    ;; Check if student is using same alphabet
+    (unless (and (subset (third pda1) (third pda2))
+		 (subset (third pda2) (third pda1)))
+      (error-and-reset "incorrect alphabet provided"
+		       pda2st))
+    (if (equal (run-pda (cdr pda1) w)
+	       (run-pda (cdr pda2) w))
+	(print (format t "[Passed test case]"))
+      (print (format t "[Failed test case]")))
+    ))
+
+(gen-pda
+ :name test2
+ :states (qstart qloop qend)
+ :alphabet (#\( #\) #\a #\* #\+)
+ :stack-alphabet (#\( #\) #\a #\* #\+ #\e #\t #\f #\$)
+ :start-state qstart
+ :start-stack #\$
+ :accept-state (qend)
+ :transition-fun  (((qstart nil #\$) . (qloop (#\e #\$)))
+		   ((qloop nil #\e) . (qloop (#\e #\+ #\t)))
+		   ((qloop nil #\e) . (qloop (#\t)))
+		   ((qloop nil #\t) . (qloop (#\t #\* #\f)))
+		   ((qloop nil #\t) . (qloop (#\f)))
+		   ((qloop nil #\f) . (qloop (#\( #\e #\))))
+		   ((qloop nil #\f) . (qloop (#\a)))
+		   ((qloop #\a #\a) . (qloop nil))
+		   ((qloop #\( #\() . (qloop nil))
+		   ((qloop #\) #\)) . (qloop nil))
+		   ((qloop #\* #\*) . (qloop nil))
+		   ((qloop #\+ #\+) . (qloop nil))
+		   ((qloop nil #\$) . (qend nil))))
+
+
+(gen-pda
+  :name   sol2b
+  :states (q0 qloop q1)
+  :alphabet (#\( #\) #\+ #\* #\a)
+  :stack-alphabet (z0 E TT FF #\( #\) #\+ #\* #\a)
+  :start-state q0
+  :start-stack z0
+  :accept-state (q1)
+  :transition-fun ( 
+                   ((q0    nil  z0  ) . (qloop (E z0)))
+                   ((qloop #\( #\( ) . (qloop nil))
+                   ((qloop #\) #\) ) . (qloop nil))
+                   ((qloop #\+ #\+ ) . (qloop nil))
+                   ((qloop #\* #\* ) . (qloop nil))
+                   ((qloop #\a #\a ) . (qloop nil))
+                   ((qloop nil E   ) . (qloop (TT #\+ E)))
+                   ((qloop nil E   ) . (qloop (TT)))
+                   ((qloop nil TT  ) . (qloop (FF #\* TT)))
+                   ((qloop nil TT  ) . (qloop (FF)))
+                   ((qloop nil FF  ) . (qloop (#\) E #\()))
+                   ((qloop nil FF  ) . (qloop (#\a)))
+                   ((qloop nil z0  ) . (q1 nil)))))
+
+
+;(check-pda-input-run "pda1.txt" "pda1.txt" nil)
+;(check-pda-input-run "pda1.txt" "pda1.txt" '(#\( #\) #\( #\( #\( #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+;(check-pda-input-run "pda1.txt" "pda1.txt" '(#\( #\) #\( #\( #\( #\) #\( #\( #\) #\) #\) #\) #\( #\) #\)))
+
+(defun main (flist)
+  (quiet-mode-on)
+  (let* ((w (coerce (third flist) 'list)))
+    (check-pda-output (first flist) (equal "t" (second flist)) w))
+    (terpri)
+    (sb-ext:exit))
+
+
+(save-exec "pda_run_exec" nil
+           :init-forms '((set-gag-mode nil)
+                         (value :q))
+           :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::main (cdr sb-ext:*posix-argv*))' --disable-debugger")
+
+
+
