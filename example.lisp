@@ -15,19 +15,23 @@
 
 
 (defun run-tests ()
+  ;;checking if file was submitted
+  (let ((res (check-file-submission "submission/student.lisp")))
+    (if (not (car res))
+	res
   ;; Load the student submission
-  (let ((submittedform (load-lisp-file "submission/student.lisp")))
-    (grade "test-legal-dfa"
-	   10
-	   (eval submittedform)))
-
-  ;; Grade form to grade student submission
-  (grade "test-equivalence"          ;; test case name
-	 10                          ;; points allocated to this test
-	 (query-equivalence 'instr-dfa 'student-dfa))  ;; should return (bool . string)
-  (finish-grading))
-
-
+      (let ((submittedform (load-lisp-file "submission/student.lisp")))
+	(grade "test-legal-dfa"
+	       10
+	       (eval submittedform))
+	
+	;; Grade form to grade student submission
+	(grade "test-equivalence"          ;; test case name
+	       10                          ;; points allocated to this test
+	       (query-equivalence 'instr-dfa 'student-dfa)))))  ;; should return (bool . string)
+      (finish-grading))
+    
+    
 ;; the following command is necessary to create an executable
 ;; named run_autograder according to gradescope specification
 (save-exec "run_autograder" nil
