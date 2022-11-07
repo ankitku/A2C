@@ -64,74 +64,68 @@
   (acl2s-event `acl2s::(ubt ',(gen-sym-pred d))))
 
 (defun error-and-reset (msg def)
-  (progn (reset-tm-def def)
-	 (error (format nil "[~a]" msg))
-         (sb-ext:exit)))
+  (reset-dfa-def def)
+  (cons nil (format nil "[~a]" msg)))
 
 ;; generates defdata events while also checking if input is actually a TM
 (defun mk-tm-events (name states alphabet tape-alphabet start-state accept-state reject-state transition-fun)
-  (let* ((p-state (gen-symb "~a-state" name))
-	 (p-states (gen-symb "~a-states" name))
-	 (p-elem (gen-symb "~a-element" name))
-	 (p-tape-elem (gen-symb "~a-tape-element" name))
-	 (p-word (gen-symb "~a-word" name))
-	 (p-tape-word (gen-symb "~a-tape-word" name))
-	 (p-ab (gen-symb "~a-alphabet" name))
-	 (p-tape-ab (gen-symb "~a-tape-alphabet" name))
-	 (p-dir (gen-symb "~a-direction" name))
-	 (p-tdom (gen-symb "~a-t-domain" name))
-	 (p-trange (gen-symb "~a-t-range" name))
-	 (p-f (gen-symb "~a-transition-function" name))
-	 (p-fp (gen-sym-pred p-f))
-         (tm-name (gen-symb-const name)))
-    (acl2s-event `acl2s::(defdata ,p-state  (enum (quote ,states))))
-    (unless (statesp `acl2s::,states) (error-and-reset "incorrect states" p-state))
-    (acl2s-event `acl2s::(defdata ,p-states (listof ,p-state)))
-    (acl2s-event `acl2s::(defdata ,p-elem  (enum (quote ,alphabet))))
-    (acl2s-event `acl2s::(defdata ,p-word (listof ,p-elem)))
-    (acl2s-event `acl2s::(defdata ,p-ab ,p-word))
-    (acl2s-event `acl2s::(defdata ,p-tape-elem  (enum (quote ,tape-alphabet))))
-    (acl2s-event `acl2s::(defdata ,p-tape-word (listof ,p-tape-elem)))
-    (acl2s-event `acl2s::(defdata ,p-tape-ab ,p-tape-word))
-    (unless (subset `acl2s::,alphabet `acl2s::,tape-alphabet)
-      (error-and-reset "input alphabet should be a subset of tape alphabet" p-state))
-    (unless (in start-state `acl2s::,states) (error-and-reset (format t "incorrect start state ~a" start-state) p-state))
-    (unless (in accept-state `acl2s::,states) (error-and-reset (format t "incorrect accept state ~a" accept-state) p-state))
-    (unless (in reject-state `acl2s::,states) (error-and-reset (format t "incorrect reject state ~a" reject-state) p-state))
-    (acl2s-event `acl2s::(defdata ,p-dir (enum '(L R))))
-    (acl2s-event `acl2s::(defdata ,p-tdom (list ,p-state ,p-tape-elem)))
-    (acl2s-event `acl2s::(defdata ,p-trange (list ,p-state ,p-tape-elem ,p-dir)))
-    (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange)))
-    (unless (second (acl2s-compute `acl2s::(,p-fp (quote ,transition-fun))))
-      (error-and-reset "incorrect transition function" p-state))
-
-    (acl2s-event `acl2s::(defconst ,tm-name (list ',states ',alphabet ',tape-alphabet ',transition-fun ',start-state ',accept-state ',reject-state)))
+  (b* ((p-state (gen-symb "~a-state" name))
+       (p-states (gen-symb "~a-states" name))
+       (p-elem (gen-symb "~a-element" name))
+       (p-tape-elem (gen-symb "~a-tape-element" name))
+       (p-word (gen-symb "~a-word" name))
+       (p-tape-word (gen-symb "~a-tape-word" name))
+       (p-ab (gen-symb "~a-alphabet" name))
+       (p-tape-ab (gen-symb "~a-tape-alphabet" name))
+       (p-dir (gen-symb "~a-direction" name))
+       (p-tdom (gen-symb "~a-t-domain" name))
+       (p-trange (gen-symb "~a-t-range" name))
+       (p-f (gen-symb "~a-transition-function" name))
+       (p-fp (gen-sym-pred p-f))
+       (tm-name (gen-symb-const name))
+       (- (acl2s-event `acl2s::(defdata ,p-state  (enum (quote ,states)))))
+       ((unless (statesp `acl2s::,states)) (error-and-reset "incorrect states" p-state))
+       (- (acl2s-event `acl2s::(defdata ,p-states (listof ,p-state))))
+       (- (acl2s-event `acl2s::(defdata ,p-elem  (enum (quote ,alphabet)))))
+       (- (acl2s-event `acl2s::(defdata ,p-word (listof ,p-elem))))
+       (- (acl2s-event `acl2s::(defdata ,p-ab ,p-word)))
+       (- (acl2s-event `acl2s::(defdata ,p-tape-elem  (enum (quote ,tape-alphabet)))))
+       (- (acl2s-event `acl2s::(defdata ,p-tape-word (listof ,p-tape-elem))))
+       (- (acl2s-event `acl2s::(defdata ,p-tape-ab ,p-tape-word)))
+       ((unless (subset `acl2s::,alphabet `acl2s::,tape-alphabet))
+        (error-and-reset "input alphabet should be a subset of tape alphabet" p-state))
+       ((unless (in start-state `acl2s::,states)) (error-and-reset (format t "incorrect start state ~a" start-state) p-state))
+       ((unless (in accept-state `acl2s::,states)) (error-and-reset (format t "incorrect accept state ~a" accept-state) p-state))
+       ((unless (in reject-state `acl2s::,states)) (error-and-reset (format t "incorrect reject state ~a" reject-state) p-state))
+       (- (acl2s-event `acl2s::(defdata ,p-dir (enum '(L R)))))
+       (- (acl2s-event `acl2s::(defdata ,p-tdom (list ,p-state ,p-tape-elem))))
+       (- (acl2s-event `acl2s::(defdata ,p-trange (list ,p-state ,p-tape-elem ,p-dir))))
+       (- (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange))))
+       ((unless (second (acl2s-compute `acl2s::(,p-fp (quote ,transition-fun)))))
+        (error-and-reset "incorrect transition function" p-state))
+       (- (acl2s-event `acl2s::(defconst ,tm-name (list ',states ',alphabet ',tape-alphabet ',transition-fun ',start-state ',accept-state ',reject-state)))))
     (cons t (format nil "Legal TM : ~a" `acl2s::(,states ,alphabet ,tape-alphabet ,transition-fun ,start-state ,accept-state ,reject-state)))))
-
-
 
 (defun gen-tm-fn (&key name states alphabet tape-alphabet start-state accept-state reject-state transition-fun)
   (mk-tm-events name states alphabet tape-alphabet start-state accept-state reject-state transition-fun))
 
-
-
 (defmacro gen-tm (&key name states alphabet tape-alphabet start-state accept-state reject-state transition-fun)
-  (unless name (error "name missing"))
-  (unless states (error "states missing"))
-  (unless alphabet (error "alphabet missing"))
-  (unless tape-alphabet (error "tape alphabet missing"))
-  (unless start-state (error "start state missing"))
-  (unless accept-state (error "accept state missing"))
-  (unless reject-state (error "reject state missing"))
-  (unless transition-fun (error "transition-fun missing"))
-  `(gen-tm-fn  :name ',name
-	       :states ',states
-	       :alphabet ',alphabet
-	       :tape-alphabet ',tape-alphabet
-	       :start-state ',start-state
-	       :accept-state ',accept-state
-	       :reject-state ',reject-state
-	       :transition-fun ',transition-fun))
+  (b* (((unless name) '(cons nil "name missing"))
+       ((unless states) '(cons nil "states missing"))
+       ((unless alphabet) '(cons nil "alphabet missing"))
+       ((unless tape-alphabet) '(cons nil "tape alphabet missing"))
+       ((unless start-state) '(cons nil "start state missing"))
+       ((unless accept-state) '(cons nil "accept state missing"))
+       ((unless reject-state) '(cons nil "reject state missing"))
+       ((unless transition-fun) '(cons nil "transition-fun missing")))
+    `(gen-tm-fn  :name ',name
+                 :states ',states
+                 :alphabet ',alphabet
+                 :tape-alphabet ',tape-alphabet
+                 :start-state ',start-state
+                 :accept-state ',accept-state
+                 :reject-state ',reject-state
+                 :transition-fun ',transition-fun)))
 
 
 (defun remove-forward-nils (xs)
