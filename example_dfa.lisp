@@ -5,8 +5,22 @@
 
 :q
 
+(in-package "ACL2S")
+
 ;; load dfa grading library and instructor's solution
 (load "dfa/dfa_raw_code.lsp")
+
+;; instructor version of DFA to test against
+(gen-dfa
+ :name instructor-dfa
+ :states (even odd)
+ :alphabet (0 1)
+ :start even
+ :accept (odd)
+ :transition-fun (((even 0) . even)
+                  ((even 1) . odd)
+                  ((odd 0) . odd)
+                  ((odd 1) . even)))
 
 ;; load acl2s grading infrastructure
 (load "gradescope-acl2s/autograder_raw_code.lsp")
@@ -26,18 +40,6 @@
     (grade "test-legal-dfa"
            10
            (eval submittedform))
-
-    ;; instructor version of DFA to test against
-    (gen-dfa
-     :name instructor-dfa
-     :states (even odd)
-     :alphabet (0 1)
-     :start even
-     :accept (odd)
-     :transition-fun (((even 0) . even)
-                      ((even 1) . odd)
-                      ((odd 0) . odd)
-                      ((odd 1) . even)))
     
     ;; Grade form to grade student submission
     (grade "test-equivalence"          ;; test case name
