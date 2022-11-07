@@ -35,11 +35,11 @@
        (-   (grade "check file submission" 0 res))
        ((unless (car res)) nil)
        ;; Load the student submission
-       (submittedform (load-lisp-file hwk-file-name)))
+       (res (eval (load-lisp-file hwk-file-name))))
 
     (grade "test-legal-dfa"
            10
-           (eval submittedform))
+           res)
     
     ;; Grade form to grade student submission
     (grade "test-equivalence"          ;; test case name

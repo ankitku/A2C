@@ -34,60 +34,56 @@
   (acl2s-event `acl2s::(ubt ',(gen-sym-pred d))))
 
 (defun error-and-reset (msg def)
-  (progn (reset-dfa-def def)
-	 (error (format nil "[~a]" msg))
-         (sb-ext:exit)))
-
+  (reset-dfa-def def)
+  (cons nil (format nil "[~a]" msg)))
 
 ;; generates defdata events while also checking if input is actually a DFA
 (defun mk-dfa-events (name states alphabet start accept transition-fun)
-  (let* ((d-state (gen-symb "~a-state" name))
-	 (d-states (gen-symb "~a-states" name))
-	 (d-elem (gen-symb "~a-element" name))
-	 (d-word (gen-symb "~a-word" name))
-	 (d-ab (gen-symb "~a-alphabet" name))
-	 (d-tdom (gen-symb "~a-t-domain" name))
-	 (d-f (gen-symb "~a-transition-function" name))
-	 (d-fp (gen-sym-pred d-f))
-         (dfa-name (gen-symb-const name)))
-    (acl2s-event `acl2s::(defdata ,d-state  (enum (quote ,states))))
-    (unless (statesp `acl2s::,states) (error-and-reset "incorrect states" d-state))
-    (acl2s-event `acl2s::(defdata ,d-states (listof ,d-state)))
-    (acl2s-event `acl2s::(defdata ,d-elem  (enum (quote ,alphabet))))
-    (acl2s-event `acl2s::(defdata ,d-word (listof ,d-elem)))
-    (acl2s-event `acl2s::(defdata ,d-ab ,d-word))
-    (unless (alphabetp `acl2s::,alphabet) (error-and-reset "incorrect alphabet" d-state))
-    (unless (in start `acl2s::,states) (error-and-reset "incorrect start state" d-state))
-    (unless (subset `acl2s::,accept `acl2s::,states)
-      (error-and-reset "incorrect accept states" d-state))
-    (acl2s-event `acl2s::(defdata ,d-tdom (list ,d-state ,d-elem)))
-    (acl2s-event `acl2s::(defdata ,d-f (alistof ,d-tdom ,d-state)))
-    (unless (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun))))
-       (error-and-reset "incorrect transition function" d-state))
-    (acl2s-event `acl2s::(defdata ,name (list ,d-states ,d-ab ,d-f ,d-state ,d-states)))
-    (unless (dfap `acl2s::(,states ,alphabet ,transition-fun ,start ,accept))
-      (error-and-reset "incorrect dfa" d-state))
-    (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
+  (b* ((d-state (gen-symb "~a-state" name))
+       (d-states (gen-symb "~a-states" name))
+       (d-elem (gen-symb "~a-element" name))
+       (d-word (gen-symb "~a-word" name))
+       (d-ab (gen-symb "~a-alphabet" name))
+       (d-tdom (gen-symb "~a-t-domain" name))
+       (d-f (gen-symb "~a-transition-function" name))
+       (d-fp (gen-sym-pred d-f))
+       (dfa-name (gen-symb-const name))
+       (- (acl2s-event `acl2s::(defdata ,d-state  (enum (quote ,states)))))
+       ((unless (statesp `acl2s::,states)) (error-and-reset "incorrect states" d-state))
+       (- (acl2s-event `acl2s::(defdata ,d-states (listof ,d-state))))
+       (- (acl2s-event `acl2s::(defdata ,d-elem  (enum (quote ,alphabet)))))
+       (- (acl2s-event `acl2s::(defdata ,d-word (listof ,d-elem))))
+       (- (acl2s-event `acl2s::(defdata ,d-ab ,d-word)))
+       ((unless (alphabetp `acl2s::,alphabet) (error-and-reset "incorrect alphabet" d-state)))
+       ((unless (in start `acl2s::,states) (error-and-reset "incorrect start state" d-state)))
+       ((unless (subset `acl2s::,accept `acl2s::,states)
+          (error-and-reset "incorrect accept states" d-state)))
+       (- (acl2s-event `acl2s::(defdata ,d-tdom (list ,d-state ,d-elem))))
+       (- (acl2s-event `acl2s::(defdata ,d-f (alistof ,d-tdom ,d-state))))
+       ((unless (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun))))
+          (error-and-reset "incorrect transition function" d-state)))
+       (- (acl2s-event `acl2s::(defdata ,name (list ,d-states ,d-ab ,d-f ,d-state ,d-states))))
+       ((unless (dfap `acl2s::(,states ,alphabet ,transition-fun ,start ,accept))
+          (error-and-reset "incorrect dfa" d-state)))
+       (- (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))))
     (cons t (format nil "Legal DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))
 
 (defun gen-dfa-fn (&key name states alphabet start accept transition-fun)
- (let* ((df `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))
-    (mk-dfa-events name states alphabet start accept transition-fun)))
+  (mk-dfa-events name states alphabet start accept transition-fun))
 
 (defmacro gen-dfa (&key name states alphabet start accept transition-fun)
-  (unless name (error "name missing"))
-  (unless states (error "states missing"))
-  (unless alphabet (error "alphabet missing"))
-  (unless start (error "start missing"))
-  (unless accept (error "accept missing"))
-  (unless transition-fun (error "transition-fun missing"))
-  `(gen-dfa-fn :name ',name
-	       :states ',states
-	       :alphabet ',alphabet
-	       :start ',start
-	       :accept ',accept
-	       :transition-fun ',transition-fun))
-  
+  (b* (((unless name) '(cons nil "name missing"))
+       ((unless states) '(cons nil "states missing"))
+       ((unless alphabet) '(cons nil "alphabet missing"))
+       ((unless start) '(cons nil "start missing"))
+       ((unless accept) '(cons nil "accept missing"))
+       ((unless transition-fun) '(cons nil "transition-fun missing")))
+    `(gen-dfa-fn :name ',name
+                 :states ',states
+                 :alphabet ',alphabet
+                 :start ',start
+                 :accept ',accept
+                 :transition-fun ',transition-fun)))
 
 ;;------------------------------------------------------------------------
 ;; DFA query equivalence
@@ -128,7 +124,6 @@
 
 
 #|
-
 (gen-dfa
  :name instructor-dfa
  :states (even odd)
@@ -157,5 +152,4 @@
                   ((o2 1) . e1)))
 
 (query-equivalence 'instructor-dfa 'student-dfa)
-
 |#
