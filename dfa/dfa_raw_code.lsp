@@ -70,14 +70,9 @@
     (acl2s-event `acl2s::(defconst ,dfa-name (list ',states ',alphabet ',transition-fun ',start ',accept)))
     (cons t (format nil "Legal DFA : ~a" `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))))
 
-
-
 (defun gen-dfa-fn (&key name states alphabet start accept transition-fun)
  (let* ((df `acl2s::(,states ,alphabet ,transition-fun ,start ,accept)))
-    (mk-dfa-events name states alphabet start accept transition-fun)
-    (cons name df)))
-
-
+    (mk-dfa-events name states alphabet start accept transition-fun)))
 
 (defmacro gen-dfa (&key name states alphabet start accept transition-fun)
   (unless name (error "name missing"))

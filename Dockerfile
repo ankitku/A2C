@@ -1,11 +1,11 @@
-FROM atwalter/acl2s_gradescope_autograder
+
+FROM atwalter/acl2s_gradescope_autograder:cs2800fa22 
 
 RUN apt-get update && apt-get install -y git curl unzip dos2unix && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN mkdir -p /autograder 
-COPY . /autograder/
 
-RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+COPY . /autograder/
 
 ENV HOME=/
 
@@ -14,11 +14,6 @@ RUN sbcl --load quicklisp.lisp --eval '(quicklisp-quickstart:install)'
 
 WORKDIR /autograder
 
-RUN git submodule update --init --recursive
-RUN git submodule foreach git pull origin master
-RUN cd gradescope-acl2s/interface && make && cd ../..
-# RUN cd dfa && ./make.sh && cd ..
-RUN cd tm && ./make.sh && cd ..
+RUN mkdir -p results
 
-RUN mkdir results
-RUN acl2s < example2.lisp
+RUN acl2s < example_dfa.lisp
