@@ -1,3 +1,6 @@
+(include-book "tm")
+(include-book "acl2s/interface/acl2s-utils/top" :dir :system)
+
 :q
 (in-package "ACL2S")
 (declaim (optimize (safety 3) (speed 0) (space 0) (debug 3)))
