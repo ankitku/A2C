@@ -1,4 +1,4 @@
-(include-book "dfa")
+(include-book "dfa/dfa")
 (include-book "acl2s/interface/acl2s-utils/top" :dir :system)
 
 :q

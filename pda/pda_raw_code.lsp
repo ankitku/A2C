@@ -1,10 +1,13 @@
-(include-book "../gradescope-acl2s/interface/top")
-(include-book "pda")
+(include-book "pda/pda")
+(include-book "acl2s/interface/acl2s-utils/top" :dir :system)
 
 :q
 (in-package "ACL2S")
+(import 'acl2s-interface::(acl2s-event acl2s-query acl2s-compute itest?-query))
+
 (declaim (optimize (safety 3) (speed 0) (space 0) (debug 3)))
 (declaim (sb-ext:muffle-conditions style-warning))
+
 
 ;;------------------------------------------------------------------------
 ;; Symbol name manipulation
@@ -22,7 +25,7 @@
 (gen-sym-pred 'pda)
 
 ;;------------------------------------------------------------------------
-;; DFA make/reset events generation
+;; PDA make/reset events generation
 ;;------------------------------------------------------------------------
 
 (defun reset-history ()
@@ -33,12 +36,15 @@
 
 (defun error-and-reset (msg def)
   (progn (reset-pda-def def)
-	 (cons nil (format nil "[~a]" msg))))
+	 (error (format nil "[~a]" msg))
+         (sb-ext:exit)))
 
 
 (defun query-function-has-start (txf start-state)
-  (in (list start-state nil nil) (strip-cars txf) :test 'equal))
+  (in (list start-state :e :e) (strip-cars txf) :test 'equal))
 
+(defun query-function-start-state-adds-base (txf start-state)
+  (not (endp (remove :e (mapcar 'second (pda-trx-lookup txf (list start-state :e :e)))))))
 
 (defun query-function-distinctdom (txf)
   (let ((domain (strip-cars txf)))
@@ -55,7 +61,6 @@
                  (and  (,ss (first state-element-pair=))
                        (,es1 (second state-element-pair=))
                        (,es2 (third state-element-pair=)))))))
-                     
 
 ;; generates defdata events while also checking if input is actually a PDA
 (defun mk-pda-events (name states alphabet stack-alphabet
@@ -67,7 +72,7 @@
 	 (p-ab (gen-symb "~a-alphabet" name))
 	 (p-stk-elem (gen-symb "~a-stk-element" name))
 	 (p-stk-word (gen-symb "~a-stk-word" name))
- 	 (p-stk-ab (gen-symb "~a-stk-alphabet" name))
+	 (p-stk-ab (gen-symb "~a-stk-alphabet" name))
 	 (p-tdom (gen-symb "~a-t-domain" name))
 	 (p-trange (gen-symb "~a-t-range" name))
 	 (p-f (gen-symb "~a-transition-function" name))
@@ -77,10 +82,10 @@
     (if (not (statesp `acl2s::,states))
 	(error-and-reset "incorrect states" p-state)
       (progn (acl2s-event `acl2s::(defdata ,p-states (listof ,p-state)))
-	     (acl2s-event `acl2s::(defdata ,p-elem  (enum (quote ,(cons nil alphabet)))))
+	     (acl2s-event `acl2s::(defdata ,p-elem  (enum (quote ,alphabet))))
 	     (acl2s-event `acl2s::(defdata ,p-word (listof ,p-elem)))
 	     (acl2s-event `acl2s::(defdata ,p-ab ,p-word))
-             (acl2s-event `acl2s::(defdata ,p-stk-elem  (enum (quote ,(cons nil stack-alphabet)))))
+             (acl2s-event `acl2s::(defdata ,p-stk-elem  (enum (quote ,stack-alphabet))))
              (acl2s-event `acl2s::(defdata ,p-stk-word (listof ,p-stk-elem)))
              (acl2s-event `acl2s::(defdata ,p-stk-ab ,p-stk-word))
 	     (if (not (in start-state `acl2s::,states))
@@ -93,20 +98,22 @@
                      (acl2s-event `acl2s::(defdata ,p-trange (listof (list ,p-state ,p-stk-elem))))
 		     (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange)))
                      (let ((res (query-function-distinctdom transition-fun)))
-                       (if res (error-and-reset "transition function domain is not distinct" p-state)
+                       (if res (error-and-reset "transition function domain is not distinct." p-state)
                          (let ((res (query-extra-functiondom p-state p-elem p-stk-elem transition-fun)))
                            (if (car res)
-                               (error-and-reset (format nil "Domain of transition function is not of type : states x input alphabet x stack alphabet ~a" (cdr res)) p-state)
+                               (error-and-reset (format nil "Domain of transition function is not of type : states x input alphabet x stack alphabet ~a." (cdr res)) p-state)
                              (if (not (query-function-has-start transition-fun start-state))
-                                 (error-and-reset (format nil "Starting domain (~a nil nil) missing from the transition function" start-state) p-state)
+                                 (error-and-reset (format nil "Starting
+transition from (~a :e :e) missing from the transition function." start-state) p-state)
+                               (if (not (query-function-start-state-adds-base transition-fun start-state))
+                                 (error-and-reset (format nil "Start state
+transition does not add a base stack symbol" start-state) p-state)
                              ;;(if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
                              ;; with all the other checks we added for functions, we do not really need to enforce it as a map
                              ;;  (error-and-reset "incorrect transition function" d-state)
-                               (progn (acl2s-event `acl2s::(defconst ,pda-name (list ',states ',alphabet ',stack-alphabet ',transition-fun ',start-state ',accept-states)))
-                                      (cons t (format nil "Legal PDA : ~a" `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,accept-states)))))))))))))))))
+                                 (progn (acl2s-event `acl2s::(defconst ,pda-name (list ',states ',alphabet ',stack-alphabet ',transition-fun ',start-state ',accept-states)))
+                                        (cons t (format nil "Legal PDA : ~a" `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,accept-states))))))))))))))))))
   
-  
-
 
 (defun gen-pda-fn (&key name states alphabet stack-alphabet start-state accept-states transition-fun)
   (let* ((df `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,accept-states)))
@@ -120,49 +127,156 @@
   (unless start-state (error "start state missing"))
   (unless accept-states (error "accept states missing"))
   (unless transition-fun (error "transition-fun missing"))
-  (let ((up-ab (cons nil alphabet)))
+  (let ((up-ab (cons :e alphabet))
+        (up-stkab (cons :e stack-alphabet)))
   `(gen-pda-fn :name ',name
 	       :states ',states
 	       :alphabet ',up-ab
-	       :stack-alphabet ',stack-alphabet
+	       :stack-alphabet ',up-stkab
 	       :start-state ',start-state
 	       :accept-states ',accept-states
 	       :transition-fun ',transition-fun)))
 
+;;run-steps is set to explore a depth of 100 in the execution tree.
+;;having more depth will require more time to find accepting states.
+
+
+;;------------------------------------------------------------------------
+;; DFA check events generation
+;;------------------------------------------------------------------------
+
+(defun query-alphabet-equal (pda1-name pda2-name)
+  (let ((da1 (gen-symb "~a-alphabet" pda1-name))
+	(da2 (gen-symb "~a-alphabet" pda2-name)))
+    (acl2s-event
+     `acl2s::(defdata-equal-strict ,da1 ,da2))))
+
+(defun query-equivalence (pda1-name pda2-name)
+  (let ((res (query-alphabet-equal pda1-name pda2-name))
+	(dn (gen-symb "~a-wordp" pda1-name))
+	(pda1 (gen-symb-const pda1-name))
+	(pda2 (gen-symb-const pda2-name)))
+    (unless (boundp pda1)
+      (reset-and-exit :msg (format nil "Undefined PDA ~a" pda1-name)
+                      :func query-equivalence))
+    (unless (boundp pda2)
+      (reset-and-exit :msg (format nil "Undefined PDA ~a" pda2-name)
+                      :func query-equivalence))
+    (if (car res)
+	(cons nil "Incorrect alphabet provided.")
+      (let ((res (itest?-query
+                  `acl2s::(=> (,dn w)
+                              (== (run-pda ,pda1 w)
+                                  (run-pda ,pda2 w))))))
+        (if (car res)
+            (cons nil (format nil "Transition function error. The following words
+  were misclassified :~% ~a" (substitute :e nil (mapcar #'cadar (cadadr res)))
+  (gen-symb "~a-state" pda2-name)))
+          (cons t (format nil "~a is correct." pda2-name)))))))
+
+
+
+;;------------------------------------------------------------------------
+;; PAPER EXAMPLES
+;;------------------------------------------------------------------------
+#|
+(gen-pda
+ :name instr
+ :states (q0 q1 q2 q3)
+ :alphabet (0 1)
+ :stack-alphabet (0 z)
+ :start-state q0
+ :accept-states (q0 q3)
+ :transition-fun (((q0 :e :e) . ((q1 z)))
+                  ((q1 0  :e) . ((q1 0)))
+                  ((q1 1   0)   . ((q2 :e)))
+                  ((q2 1   0)   . ((q2 :e)))
+                  ((q2 :e z)   . ((q3 :e)))))
 
 (gen-pda
- :name zn4n
+ :name student
+ :states (q0 q1 q2 q3)
+ :alphabet (0 1)
+ :stack-alphabet (0 z)
+ :start-state q0
+ :accept-states (q3)
+ :transition-fun (((q0 :e :e) . ((q1 z)))
+                  ((q1 0  :e) . ((q1 0)))
+                  ((q1 1   0)   . ((q2 :e)))
+                  ((q2 1   0)   . ((q2 :e)))
+                  ((q2 :e z)   . ((q3 :e)))))
+
+
+(query-equivalence 'instr 'student)
+(run-pda *instr* nil)
+(run-pda *student* nil)
+
+
+(gen-pda
+ :name pda1
  :states (q0 q1 q2 q3)
  :alphabet (0 1)
  :stack-alphabet (0 b)
  :start-state q0
  :accept-states (q0 q3)
- :transition-fun (((q1 0   nil) . ((q1 0)))
-                  ((q1 1   0)   . ((q2 nil)))
-                  ((q2 1   0)   . ((q2 nil)))
-                  ((q2 nil b)   . ((q3 nil)))))
+ :transition-fun (((q0 :e :e) . ((q1 b)))
+                  ((q1 :e 0) . ((q1 0)))
+                  ((q1 0   :e) . ((q1 0)))
+                  ((q1 1   0)   . ((q2 :e)))
+                  ((q2 1   0)   . ((q2 :e)))
+                  ((q2 :e b)   . ((q3 :e)))))
+
+(run-pda *pda1* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
 
 
-(defun run-pda (pda w)
-  (run-steps 20 pda `(,(list (pda-start pda) nil w))))
+(gen-pda
+ :name zn1n
+ :states (q0 q1 q2 q3)
+ :alphabet (0 1)
+ :stack-alphabet (0 z)
+ :start-state q0
+ :accept-states (q3)
+ :transition-fun (((q0 :e :e) . ((q1 z)))
+                  ((q1 0  :e) . ((q1 0)))
+                  ((q1 1   0)   . ((q2 :e)))
+                  ((q2 1   0)   . ((q2 :e)))
+                  ((q2 :e z)   . ((q3 :e)))))
 
-
-(run-pda *pda-test* '( #\( #\) ))
-(run-pda *pda-test* '( #\( #\) #\( #\( #\) #\) #\( #\( #\( #\) #\) #\) ))
-(run-pda *pda-test* '( #\( #\( ))     
-(run-pda *pda-test* '( #\( #\) #\( ))
 
 (run-pda *ZN1N* '(0 0 1 1))
 (run-pda *ZN1N* '(0 0 1 1 1))
+(run-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1))
+(run-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1 0))
+(run-pda *ZN1N* '(0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1))
 (run-pda *ZN1N* '())
 
+(gen-pda
+ :name pda2
+ :states (q0 q1 q2 q3)
+ :alphabet (0 1)
+ :stack-alphabet (0 b)
+ :start-state q0
+ :accept-states (q3)
+ :transition-fun (((q0 :e :e) . ((q1 b) (q3 :e)))
+                  ((q1 :e 0) . ((q1 0)))
+                  ((q1 0   :e) . ((q1 0)))
+                  ((q2 :e 0) . ((q2 0)))
+                  ((q2 0   :e) . ((q2 0)))
+                  ((q1 1   0)   . ((q2 :e)))
+                  ((q2 1   0)   . ((q2 :e)))
+                  ((q2 :e b)   . ((q3 :e)))))
 
+(run-pda *pda2* '(0))
+(run-pda *pda2* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
+(run-pda *pda2* '())
+(time (run-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)))
+(time (run-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1)))
 
-#|
+|#
+
 (save-exec "pda_run_exec" nil
            :init-forms '((set-gag-mode nil)
                          (value :q))
            :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::main (cdr sb-ext:*posix-argv*))' --disable-debugger")
-|#
 
 

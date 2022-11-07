@@ -1,8 +1,10 @@
-(include-book "tm")
+(include-book "tm/tm")
 (include-book "acl2s/interface/acl2s-utils/top" :dir :system)
 
 :q
 (in-package "ACL2S")
+(import 'acl2s-interface::(acl2s-event acl2s-query acl2s-compute itest?-query))
+
 (declaim (optimize (safety 3) (speed 0) (space 0) (debug 3)))
 (declaim (sb-ext:muffle-conditions style-warning))
 
@@ -132,34 +134,6 @@
 	       :transition-fun ',transition-fun))
 
 
-#|
-(gen-tm
- :name testxxxxxxxxxxxxxxxxxxxxxtm
- :states (q0 q1 q2)
- :alphabet (#\1 #\2)
- :tape-alphabet (#\1 #\2 #\4 nil)
- :start-state q0
- :accept-state q1
- :reject-state q2
- :transition-fun  (((q0 #\1) . (q0 #\2 R))
-		   ((q0 #\2) . (q0 #\4 R))
-		   ((q0 nil) . (q1 nil R))))
-|#
-
-(gen-tm
- :name instructor-tm
- :states (q0 q1 q2 q3)
- :alphabet (#\0 #\1)
- :tape-alphabet (#\0 #\1 nil)
- :start-state q0
- :accept-state q1
- :reject-state q2
- :transition-fun (((q0 #\1) . (q0 #\0 R))
-                  ((q0 #\0) . (q0 #\1 R))
-                  ((q0 nil) . (q3 nil R))
-                  ((q3 nil) . (q1 nil L))))
-
-
 (defun remove-forward-nils (xs)
   (cond ((and (consp xs)
 	      (equal (car xs) nil)) (remove-forward-nils (cdr xs)))
@@ -180,15 +154,13 @@
 	 (res (runtm w (cdr tm1))))
     ;;start including output from here
     ;;check if ended in accept state and prefix of left tape matches the expected output
-    
     (if (and (equal (car res) t)
 	     (prefixp expected (remove-forward-nils (cdr res))))
         (format t "Passed test case]")
       (format t "Failed test case]"))))
 
 (defun query-equivalence (tm1-name tm2-name)
-  (let (
-        ;(res (query-alphabet-equal dfa1-name dfa2-name))
+  (let ((res (query-alphabet-equal dfa1-name dfa2-name))
 	(dn (gen-symb "~a-wordp" tm1-name))
 	(tm1 (gen-symb-const tm1-name))
 	(tm2 (gen-symb-const tm2-name)))
@@ -198,14 +170,30 @@
                                 (runtm-100 ,tm2 w))))))
       (if (car res)
             (cons nil (format nil "Transition function error. The following words
-  were misclassified :~% ~a" (mapcar #'cadar (car (cdr res)))))
+  were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))
   (gen-symb "~a-state" tm2-name)))
-          (cons t (format nil "~a is correct." tm2-name))))
+    (cons t (format nil "~a is correct." tm2-name))))
+
 
 #|
-(query-equivalence 'instructor-tm 'student-tm)
+
+(gen-tm
+ :name instructor2-tm
+ :states (q0 q1 q2 q3)
+ :alphabet (#\0 #\1)
+ :tape-alphabet (#\0 #\1 nil)
+ :start-state q0
+ :accept-state q1
+ :reject-state q2
+ :transition-fun (((q0 #\1) . (q0 #\0 R))
+                  ((q0 #\0) . (q0 #\0 R))
+                  ((q0 nil) . (q3 nil R))
+                  ((q3 nil) . (q1 nil L))))
+
+
+(query-equivalence 'instructor-tm 'instructor2-tm)
 
 (test? (=> (instructor-tm-wordp w)
            (== (runtm-100  w *instructor-tm*)
-               (runtm-100  w *student-tm*))))
+               (runtm-100  w *instructor2-tm*))))
 |#
