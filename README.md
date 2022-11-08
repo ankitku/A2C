@@ -1,4 +1,4 @@
-
+![A2C](res/logo.png)
 ### Introduction
 Automatic Automata Checker (A2C) is a library based on the ACL2S
 Theorem Prover (http://acl2s.ccs.neu.edu/acl2s/doc/) that enables
