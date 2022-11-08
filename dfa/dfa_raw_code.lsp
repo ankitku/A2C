@@ -113,8 +113,8 @@
                           :func query-equivalence)))
        (res (itest?-query
              `acl2s::(=> (,dn w)
-                         (equal (run-dfa ,dfa1 w)
-                                (run-dfa ,dfa2 w)))))
+                         (equal (accept-dfa ,dfa1 w)
+                                (accept-dfa ,dfa2 w)))))
        ((when (car res))
         (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (mapcar #'cadar (cadadr res))

@@ -144,8 +144,8 @@
 	(tm2 (gen-symb-const tm2-name)))
     (let ((res (itest?-query
                 `acl2s::(=> (,dn w)
-                            (== (acceptedp w ,tm1)
-                                (acceptedp w ,tm2))))))
+                            (== (accept-tm w ,tm1)
+                                (accept-tm w ,tm2))))))
       (if (car res)
             (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))

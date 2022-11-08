@@ -102,7 +102,7 @@
 (definec runtm-100 (input :tape-word tm :tm) :tape
   (runtm-help 100 (list (tm-start tm) nil input) tm))
 
-(definec acceptedp (input :tape-word tm :tm) :boolean
+(definec accept-tm (input :tape-word tm :tm) :boolean
   (equal (car (runtm-100 input tm))
 	 (tm-accept tm)))
 
@@ -216,19 +216,19 @@
 
 
 (test?  (=> (natp n) (wordp w) (not (equal (gen-word0n1n2np n) w)))
-	    (acceptedp (gen-word0n1n2np n) *tm-0n1n2n-recognizer*)))
+	    (accept-tm (gen-word0n1n2np n) *tm-0n1n2n-recognizer*)))
 
 ;;F
 (test?  (=> (natp n)
-	    (not (acceptedp (cons #\2 (gen-word0n1n2np n)) *tm-0n1n2n-recognizer*))))
+	    (not (accept-tm (cons #\2 (gen-word0n1n2np n)) *tm-0n1n2n-recognizer*))))
 
 
 
 
 ;;Incorrect example
 (test?  (=> (natp n)
-	    (acceptedp (gen-word0n1n2np n) *tm-0n1n2n-faker*)))
+	    (accept-tm (gen-word0n1n2np n) *tm-0n1n2n-faker*)))
 
 (test?  (=> (natp n)
-	    (not (acceptedp (cons #\2 (gen-word0n1n2np n)) *tm-0n1n2n-faker*))))
+	    (not (accept-tm (cons #\2 (gen-word0n1n2np n)) *tm-0n1n2n-faker*))))
 |#

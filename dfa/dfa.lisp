@@ -65,7 +65,7 @@
 		  trans
 		  (cdr w))))
 
-(definecd run-dfa (m :dfa w :word) :bool
+(definecd accept-dfa (m :dfa w :word) :bool
   (b* ((trans  (dfa-trans m))
        (start  (dfa-start m))
        (accept (dfa-accept m)))

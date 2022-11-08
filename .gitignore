@@ -302,6 +302,7 @@ pan*
 *.out
 *.temp
 *.core
+*.image
 run_autograder
 
 # Emacs backup files

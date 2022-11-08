@@ -130,13 +130,13 @@
    ((accepted sstws (pda-accept pda)) t)
    (t (run-steps (1- n) pda (remove-duplicates-equal (pdastep (pda-trans pda) sstws))))))
 
-(definecd run-pda (pda :pda w :word) :boolean
+(definecd accept-pda (pda :pda w :word) :boolean
   (run-steps 100 pda `(,(list (pda-start pda) nil w))))
 
-(check= (run-pda *pda-test* '( #\( #\) )) t)
-(check= (run-pda *pda-test* '( #\( #\) #\( #\( #\) #\) #\( #\( #\( #\) #\) #\) )) t)
-(check= (run-pda *pda-test* '( #\( #\( )) nil)     
-(check= (run-pda *pda-test* '( #\( #\) #\( )) nil)     
+(check= (accept-pda *pda-test* '( #\( #\) )) t)
+(check= (accept-pda *pda-test* '( #\( #\) #\( #\( #\) #\) #\( #\( #\( #\) #\) #\) )) t)
+(check= (accept-pda *pda-test* '( #\( #\( )) nil)     
+(check= (accept-pda *pda-test* '( #\( #\) #\( )) nil)     
 
 ;; utility functions
 (definecd subset (a :tl b :tl) :bool

@@ -160,8 +160,8 @@ transition does not add a base stack symbol" start-state) p-state))
 	(cons nil "Incorrect alphabet provided.")
       (let ((res (itest?-query
                   `acl2s::(=> (,dn w)
-                              (== (run-pda ,pda1 w)
-                                  (run-pda ,pda2 w))))))
+                              (== (accept-pda ,pda1 w)
+                                  (accept-pda ,pda2 w))))))
         (if (car res)
             (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (substitute :e nil (mapcar #'cadar (cadadr res)))
@@ -202,8 +202,8 @@ transition does not add a base stack symbol" start-state) p-state))
 
 
 (query-equivalence 'instr 'student)
-(run-pda *instr* nil)
-(run-pda *student* nil)
+(accept-pda *instr* nil)
+(accept-pda *student* nil)
 
 
 (gen-pda
@@ -220,7 +220,7 @@ transition does not add a base stack symbol" start-state) p-state))
                   ((q2 1   0)   . ((q2 :e)))
                   ((q2 :e b)   . ((q3 :e)))))
 
-(run-pda *pda1* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
+(accept-pda *pda1* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
 
 
 (gen-pda
@@ -237,12 +237,12 @@ transition does not add a base stack symbol" start-state) p-state))
                   ((q2 :e z)   . ((q3 :e)))))
 
 
-(run-pda *ZN1N* '(0 0 1 1))
-(run-pda *ZN1N* '(0 0 1 1 1))
-(run-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1))
-(run-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1 0))
-(run-pda *ZN1N* '(0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1))
-(run-pda *ZN1N* '())
+(accept-pda *ZN1N* '(0 0 1 1))
+(accept-pda *ZN1N* '(0 0 1 1 1))
+(accept-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1))
+(accept-pda *ZN1N* '(0 0 0 0 0 0 0  0 1 1 1 1 1 1 1 1 1 0))
+(accept-pda *ZN1N* '(0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1 1 1 1 1))
+(accept-pda *ZN1N* '())
 
 (gen-pda
  :name pda2
@@ -260,10 +260,10 @@ transition does not add a base stack symbol" start-state) p-state))
                   ((q2 1   0)   . ((q2 :e)))
                   ((q2 :e b)   . ((q3 :e)))))
 
-(run-pda *pda2* '(0))
-(run-pda *pda2* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
-(run-pda *pda2* '())
-(time (run-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)))
-(time (run-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1)))
+(accept-pda *pda2* '(0))
+(accept-pda *pda2* '(0 0 0 0 0 0 0 1 1 1 1 1 1 1))
+(accept-pda *pda2* '())
+(time (accept-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1)))
+(time (accept-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1)))
 
 |#
