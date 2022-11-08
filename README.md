@@ -1,7 +1,7 @@
 ![A2C](res/logo.png)
 ### Introduction
-Automatic Automata Checker (A2C) is a library based on the ACL2S
-Theorem Prover (http://acl2s.ccs.neu.edu/acl2s/doc/) that enables
+Automatic Automata Checker (A2C) is a library based on the [ACL2S](http://acl2s.ccs.neu.edu/acl2s/doc/)
+Theorem Prover that enables
 construction of executable automata using forms faithful to their
 textbook (Sipser's Automata book) definitions. Such constructions are
 easy to reason about using semantic equivalence checks, properties and
@@ -10,7 +10,7 @@ and TM, but can be easily extended to support more.
 
 ### Try it out!
 If you want to try out sample Theory of Computation homeworks on
-Gradescope, signup for Course TOC101 (Course ID: 464626) at
+Gradescope, signup for [Course TOC101](https://www.gradescope.com/courses/464626) (Course ID: 464626) at
 **Northeastern University** using code **BB82DP**.
 
 ### Setting it up
