@@ -29,33 +29,12 @@
 			     (third m)
 			     )))
 
-(display-tape (runtm-100 '(#\1 #\2 #\2 #\1 #\1) *tm-test*))
+;(display-tape (runtm-100 '(#\1 #\2 #\2 #\1 #\1) *tm-test*))
 
 
 ;;------------------------------------------------------------------------
 ;; TM make/reset events generation
 ;;------------------------------------------------------------------------
-
-
-(defun check-tm-output-state (tm1 tm2)
-    (acl2s-event `acl2s::(test? (=> (tape-wordp w)
-				    (== (first (runtm-100 w ',tm1))
-					(first (runtm-100 w ',tm2)))))))
-
-(defun check-tm-output-tape (tm1 tm2)
-    (acl2s-event `acl2s::(test? (=> (tape-wordp w)
-				    (== (remove-beginnils (second (runtm-100 w ',tm1)))
-					(remove-beginnils (second (runtm-100 w ',tm2))))))))
-
-
-
-
-;; Testing if 2 TMs behave the same way
-(check-tm-output-state *tm-test* *tm-test2*)
-(check-tm-output-tape *tm-test* *tm-test2*)
-
-
-  
 
 (defun reset-history ()
   (acl2s-event `acl2s::(ubt 1)))
@@ -127,7 +106,6 @@
                  :reject-state ',reject-state
                  :transition-fun ',transition-fun)))
 
-
 (defun remove-forward-nils (xs)
   (cond ((and (consp xs)
 	      (equal (car xs) nil)) (remove-forward-nils (cdr xs)))
@@ -138,7 +116,6 @@
 	((endp seq) nil)
 	(t (and (equal (car exp) (car seq))
 		(prefixp (cdr exp) (cdr seq))))))
-
 
 (defun check-tm-output (f1 expected w)
   (let* ((tm1 (eval (with-open-file (infile f1) (read infile))))
@@ -153,26 +130,60 @@
         (format t "Passed test case]")
       (format t "Failed test case]"))))
 
-(defun query-equivalence (tm1-name tm2-name)
-  (let ((res (query-alphabet-equal dfa1-name dfa2-name))
+(defun query-alphabet-equal (tm1-name tm2-name)
+  (let ((da1 (gen-symb "~a-alphabet" tm1-name))
+	(da2 (gen-symb "~a-alphabet" tm2-name)))
+    (acl2s-event
+     `acl2s::(defdata-equal-strict ,da1 ,da2))))
+
+
+(defun query-equivalence-state (tm1-name tm2-name)
+  (let ((res (query-alphabet-equal tm1-name tm2-name))
 	(dn (gen-symb "~a-wordp" tm1-name))
 	(tm1 (gen-symb-const tm1-name))
 	(tm2 (gen-symb-const tm2-name)))
     (let ((res (itest?-query
                 `acl2s::(=> (,dn w)
-                            (== (runtm-100 ,tm1 w)
-                                (runtm-100 ,tm2 w))))))
+                            (== (acceptedp w ,tm1)
+                                (acceptedp w ,tm2))))))
       (if (car res)
             (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))
   (gen-symb "~a-state" tm2-name)))
     (cons t (format nil "~a is correct." tm2-name))))
 
+(defun query-equivalence-output (tm1-name tm2-name)
+  (b* ((res (query-alphabet-equal tm1-name tm2-name))
+       ((when (car res))
+        (cons nil "Incorrect alphabet provided."))
+       (dn (gen-symb "~a-wordp" tm1-name))
+       (tm1 (gen-symb-const tm1-name))
+       (tm2 (gen-symb-const tm2-name))
+       (res (itest?-query
+             `acl2s::(=> (,dn w)
+                         (== (remove-beginnils (second (runtm-100 w ,tm1)))
+                             (remove-beginnils (second (runtm-100 w ,tm2)))))))
+       ((when (car res))
+        (cons nil (format nil "Transition function error. The following words
+  were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))))
+    (cons t (format nil "~a is correct." tm2-name))))
 
 #|
+(gen-tm
+ :name instructor-tm
+ :states (q0 q1 q2 q3)
+ :alphabet (#\0 #\1)
+ :tape-alphabet (#\0 #\1 nil)
+ :start-state q0
+ :accept-state q1
+ :reject-state q2
+ :transition-fun (((q0 #\1) . (q0 #\0 R))
+                  ((q0 #\0) . (q0 #\1 R))
+                  ((q0 nil) . (q3 nil R))
+                  ((q3 nil) . (q1 nil L))))
 
 (gen-tm
- :name instructor2-tm
+ :name student-tm
  :states (q0 q1 q2 q3)
  :alphabet (#\0 #\1)
  :tape-alphabet (#\0 #\1 nil)
@@ -184,10 +195,5 @@
                   ((q0 nil) . (q3 nil R))
                   ((q3 nil) . (q1 nil L))))
 
-
-(query-equivalence 'instructor-tm 'instructor2-tm)
-
-(test? (=> (instructor-tm-wordp w)
-           (== (runtm-100  w *instructor-tm*)
-               (runtm-100  w *instructor2-tm*))))
+(query-equivalence-output 'instructor-tm 'student-tm)
 |#

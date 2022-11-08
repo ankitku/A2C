@@ -267,10 +267,3 @@ transition does not add a base stack symbol" start-state) p-state))
 (time (run-pda *pda2* '(0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1 1)))
 
 |#
-
-(save-exec "pda_run_exec" nil
-           :init-forms '((set-gag-mode nil)
-                         (value :q))
-           :toplevel-args "--eval '(declaim (sb-ext:muffle-conditions style-warning))' --eval '(acl2s::main (cdr sb-ext:*posix-argv*))' --disable-debugger")
-
-

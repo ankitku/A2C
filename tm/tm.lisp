@@ -102,12 +102,9 @@
 (definec runtm-100 (input :tape-word tm :tm) :tape
   (runtm-help 100 (list (tm-start tm) nil input) tm))
 
-
-
 (definec acceptedp (input :tape-word tm :tm) :boolean
   (equal (car (runtm-100 input tm))
 	 (tm-accept tm)))
-
 
 (definec remove-beginnils (l :tl) :tl
   (if (endp l)
