@@ -43,7 +43,7 @@
   (acl2s-event `acl2s::(ubt ',(gen-sym-pred d))))
 
 (defun error-and-reset (msg def)
-  (reset-dfa-def def)
+  (reset-tm-def def)
   (cons nil (format nil "[~a]" msg)))
 
 ;; generates defdata events while also checking if input is actually a TM
@@ -183,7 +183,7 @@
                   ((q3 nil) . (q1 nil L))))
 
 (gen-tm
- :name student-tm
+ :name student-tm3
  :states (q0 q1 q2 q3)
  :alphabet (#\0 #\1)
  :tape-alphabet (#\0 #\1 nil)
@@ -195,5 +195,5 @@
                   ((q0 nil) . (q3 nil R))
                   ((q3 nil) . (q1 nil L))))
 
-(query-equivalence-output 'instructor-tm 'student-tm)
+(query-equivalence-output 'instructor-tm 'student-tm3)
 |#

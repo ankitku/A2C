@@ -35,7 +35,7 @@
   ;; Grade form to grade student submission
   (grade "test-equivalence-output"          ;; test case name
 	 10                          ;; points allocated to this test
-	 (query-equivalence 'instructor-tm 'student-tm))  ;; should return (bool . string)
+	 (query-equivalence-output 'instructor-tm 'student-tm))  ;; should return (bool . string)
   (finish-grading))
 
 
