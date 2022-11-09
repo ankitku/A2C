@@ -29,7 +29,7 @@
 			     (third m)
 			     )))
 
-;(display-tape (runtm-100 '(#\1 #\2 #\2 #\1 #\1) *tm-test*))
+;(display-tape (run-tm '(#\1 #\2 #\2 #\1 #\1) *tm-test*))
 
 
 ;;------------------------------------------------------------------------
@@ -73,6 +73,7 @@
        (- (acl2s-event `acl2s::(defdata ,p-tape-ab ,p-tape-word)))
        ((unless (subset `acl2s::,alphabet `acl2s::,tape-alphabet))
         (error-and-reset "Input alphabet should be a subset of tape-alphabet" p-state))
+       ((when (in nil `acl2s::,alphabet)) (error-and-reset (format nil "Blank tape symbol nil cannot be in alphabet" reject-state) p-state))
        ((unless (in start-state `acl2s::,states)) (error-and-reset (format nil "Incorrect start-state ~a" start-state) p-state))
        ((unless (in accept-state `acl2s::,states)) (error-and-reset (format nil "Incorrect accept-state ~a" accept-state) p-state))
        ((unless (in reject-state `acl2s::,states)) (error-and-reset (format nil "Incorrect reject-state ~a" reject-state) p-state))
@@ -126,7 +127,7 @@
 	 (p (if (consp tm1)
 		(format t "[~%~A ACCEPTED~%" (car tm1))
 	      nil))
-	 (res (runtm w (cdr tm1))))
+	 (res (run-tm w (cdr tm1))))
     ;;start including output from here
     ;;check if ended in accept state and prefix of left tape matches the expected output
     (if (and (equal (car res) t)
@@ -169,8 +170,8 @@
         (cons nil "Incorrect alphabet provided."))
        (res (itest?-query
              `acl2s::(=> (,dn w)
-                         (== (remove-beginnils (second (runtm-100 w ,tm1)))
-                             (remove-beginnils (second (runtm-100 w ,tm2)))))))
+                         (== (remove-beginnils (second (run-tm w ,tm1)))
+                             (remove-beginnils (second (run-tm w ,tm2)))))))
        ((when (car res))
         (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))))

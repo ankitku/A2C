@@ -124,19 +124,19 @@
 (property rem-dups-statexstackxword (res :[statexstackxword])
           ([statexstackxword]p (remove-duplicates-equal res)))
   
-(definecd run-steps (n :nat pda :pda sstws :[statexstackxword]) :boolean
+(definecd run-pda (n :nat pda :pda sstws :[statexstackxword]) :boolean
   (cond
    ((== n 0) nil)
    ((accepted sstws (pda-accept pda)) t)
-   (t (run-steps (1- n) pda (remove-duplicates-equal (pdastep (pda-trans pda) sstws))))))
+   (t (run-pda (1- n) pda (remove-duplicates-equal (pdastep (pda-trans pda) sstws))))))
 
 (definecd accept-pda (pda :pda w :word) :boolean
-  (run-steps 100 pda `(,(list (pda-start pda) nil w))))
+  (run-pda 100 pda `(,(list (pda-start pda) nil w))))
 
 (check= (accept-pda *pda-test* '( #\( #\) )) t)
 (check= (accept-pda *pda-test* '( #\( #\) #\( #\( #\) #\) #\( #\( #\( #\) #\) #\) )) t)
 (check= (accept-pda *pda-test* '( #\( #\( )) nil)     
-(check= (accept-pda *pda-test* '( #\( #\) #\( )) nil)     
+(check= (accept-pda *pda-test* '( #\( #\) #\( )) nil)
 
 ;; utility functions
 (definecd subset (a :tl b :tl) :bool

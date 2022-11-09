@@ -99,11 +99,11 @@
 	  (t (runtm-help (- n 1) m2 tm)))))
 
 
-(definec runtm-100 (input :tape-word tm :tm) :tape
+(definec run-tm (input :tape-word tm :tm) :tape
   (runtm-help 100 (list (tm-start tm) nil input) tm))
 
 (definec accept-tm (input :tape-word tm :tm) :boolean
-  (equal (car (runtm-100 input tm))
+  (equal (car (run-tm input tm))
 	 (tm-accept tm)))
 
 (definec remove-beginnils (l :tl) :tl
@@ -202,12 +202,12 @@
 (check= (tmp *tm-0n1n2n-faker*) t)
 
 
-(runtm-100 '(#\1 #\2 #\2 #\1 #\1) *tm-test*)
+(run-tm '(#\1 #\2 #\2 #\1 #\1) *tm-test*)
 
-(runtm-100 '(#\0 #\1 #\2) *tm-0n1n2n-recognizer*)
-(runtm-100 '(#\0 #\1 #\1 #\2) *tm-0n1n2n-recognizer*)
-(runtm-100 '(#\0 #\0 #\1 #\1 #\2) *tm-0n1n2n-recognizer*)
-(runtm-100 '(#\0 #\0 #\1 #\1 #\2 #\2) *tm-0n1n2n-recognizer*)
+(run-tm '(#\0 #\1 #\2) *tm-0n1n2n-recognizer*)
+(run-tm '(#\0 #\1 #\1 #\2) *tm-0n1n2n-recognizer*)
+(run-tm '(#\0 #\0 #\1 #\1 #\2) *tm-0n1n2n-recognizer*)
+(run-tm '(#\0 #\0 #\1 #\1 #\2 #\2) *tm-0n1n2n-recognizer*)
 
 
 ;;Checks if numbers of the form 0^n1^n2^n are accepted by the submitted TM
