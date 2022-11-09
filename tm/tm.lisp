@@ -2,8 +2,8 @@
 
 (defdata state          var)
 (defdata states         (listof state))
-(defdata elem           (oneof character var))
-(defdata tape-elem      (oneof character var nil))
+(defdata elem           (oneof nat character var))
+(defdata tape-elem      (oneof nat character var nil))
 (defdata word           (listof elem))
 (defdata tape-word      (listof tape-elem))
 (defdata alphabet       word)
