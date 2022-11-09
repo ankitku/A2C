@@ -81,7 +81,10 @@
        (- (acl2s-event `acl2s::(defdata ,p-trange (list ,p-state ,p-tape-elem ,p-dir))))
        (- (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange))))
        ((unless (second (acl2s-compute `acl2s::(,p-fp (quote ,transition-fun)))))
-        (error-and-reset "incorrect transition function" p-state))
+        (error-and-reset "Incorrect transition function, check syntax" p-state))
+       (doms (strip-cars transition-fun))
+       (res (equal doms (remove-duplicates-equal doms)))
+       ((unless res) (error-and-reset "Domain of the transition function is not unique" p-state))
        (- (acl2s-event `acl2s::(defconst ,tm-name (list ',states ',alphabet ',tape-alphabet ',transition-fun ',start-state ',accept-state ',reject-state)))))
     (cons t (format nil "Legal TM : ~a" `acl2s::(,states ,alphabet ,tape-alphabet ,transition-fun ,start-state ,accept-state ,reject-state)))))
 

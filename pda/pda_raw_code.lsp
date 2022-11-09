@@ -93,8 +93,10 @@
        (- (acl2s-event `acl2s::(defdata ,p-tdom (list ,p-state ,p-elem ,p-stk-elem))))
        (- (acl2s-event `acl2s::(defdata ,p-trange (listof (list ,p-state ,p-stk-elem)))))
        (- (acl2s-event `acl2s::(defdata ,p-f (alistof ,p-tdom ,p-trange))))
+       ((unless (second (acl2s-compute `acl2s::(,p-fp (quote ,transition-fun)))))
+        (error-and-reset "incorrect transition function, check syntax" p-state))
        (res (query-function-distinctdom transition-fun))
-       ((when res) (error-and-reset "transition function domain is not distinct." p-state))
+       ((when res) (error-and-reset "Transition function domain is not distinct." p-state))
        (res (query-extra-functiondom p-state p-elem p-stk-elem transition-fun))
        ((when (car res)) (error-and-reset (format nil "Domain of transition function is not of type : states x input alphabet x stack alphabet ~a." (cdr res)) p-state))
        ((unless (query-function-has-start transition-fun start-state))
@@ -103,9 +105,6 @@ transition from (~a :e :e) missing from the transition function." start-state) p
        ((unless (query-function-start-state-adds-base transition-fun start-state))
         (error-and-reset (format nil "Start state
 transition does not add a base stack symbol" start-state) p-state))
-       ;;(if (not (second (acl2s-compute `acl2s::(,d-fp (quote ,transition-fun)))))
-       ;; with all the other checks we added for functions, we do not really need to enforce it as a map
-       ;;  (error-and-reset "incorrect transition function" d-state)
        (- (acl2s-event `acl2s::(defconst ,pda-name (list ',states ',alphabet ',stack-alphabet ',transition-fun ',start-state ',accept-states)))))
     (cons t (format nil "Legal PDA : ~a" `acl2s::(,states ,alphabet ,stack-alphabet ,transition-fun ,start-state ,accept-states)))))
   
