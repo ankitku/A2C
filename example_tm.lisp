@@ -18,7 +18,7 @@
  :accept-state q1
  :reject-state q2
  :transition-fun (((q0 #\1) . (q0 #\0 R))
-                  ((q0 #\0) . (q0 #\0 R))
+                  ((q0 #\0) . (q0 #\1 R))
                   ((q0 nil) . (q3 nil R))
                   ((q3 nil) . (q1 nil L))))
 
@@ -26,11 +26,19 @@
 (load "gradescope-acl2s/autograder_raw_code.lsp")
 
 (defun run-tests ()
-  ;; Load the student submission
-  (let ((submittedform (load-lisp-file "submission/student-tm.lisp")))
+  (initialize)
+  ;;checking if file was submitted
+  (b* ((files (uiop:directory-files "submission/"))
+       (hwk-file-name (car files))
+       ;; searches for hwk file by string
+       (res (check-file-submission hwk-file-name))
+       (-   (grade "check file submission" 0 res))
+       ((unless (car res)) nil)
+       ;; Load the student submission
+       (res (eval (load-lisp-file hwk-file-name))))
     (grade "test-legal-tm"
 	   10
-	   (eval submittedform)))
+	   res))
 
   ;; Grade form to grade student submission
   (grade "test-equivalence-output"          ;; test case name
