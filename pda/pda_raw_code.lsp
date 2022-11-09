@@ -146,29 +146,25 @@ transition does not add a base stack symbol" start-state) p-state))
      `acl2s::(defdata-equal-strict ,da1 ,da2))))
 
 (defun query-equivalence (pda1-name pda2-name)
-  (let ((res (query-alphabet-equal pda1-name pda2-name))
-	(dn (gen-symb "~a-wordp" pda1-name))
-	(pda1 (gen-symb-const pda1-name))
-	(pda2 (gen-symb-const pda2-name)))
-    (unless (boundp pda1)
-      (reset-and-exit :msg (format nil "Undefined PDA ~a" pda1-name)
-                      :func query-equivalence))
-    (unless (boundp pda2)
-      (reset-and-exit :msg (format nil "Undefined PDA ~a" pda2-name)
-                      :func query-equivalence))
-    (if (car res)
-	(cons nil "Incorrect alphabet provided.")
-      (let ((res (itest?-query
-                  `acl2s::(=> (,dn w)
-                              (== (accept-pda ,pda1 w)
-                                  (accept-pda ,pda2 w))))))
-        (if (car res)
-            (cons nil (format nil "Transition function error. The following words
+  (b* ((dn (gen-symb "~a-wordp" pda1-name))
+       (pda1 (gen-symb-const pda1-name))
+       (pda2 (gen-symb-const pda2-name))
+       ((unless (boundp pda1))
+        (cons nil (format nil "Undefined PDA ~a" pda1-name)))
+       ((unless (boundp pda2))
+        (cons nil (format nil "Undefined PDA ~a" pda2-name)))
+       (res (query-alphabet-equal pda1-name pda2-name))
+       ((when (car res))
+        (cons nil "Incorrect alphabet provided."))
+       (res (itest?-query
+             `acl2s::(=> (,dn w)
+                         (== (accept-pda ,pda1 w)
+                             (accept-pda ,pda2 w)))))
+       ((when (car res))
+        (cons nil (format nil "Transition function error. The following words
   were misclassified :~% ~a" (substitute :e nil (mapcar #'cadar (cadadr res)))
-  (gen-symb "~a-state" pda2-name)))
-          (cons t (format nil "~a is correct." pda2-name)))))))
-
-
+  (gen-symb "~a-state" pda2-name)))))
+    (cons t (format nil "~a is correct." pda2-name))))
 
 ;;------------------------------------------------------------------------
 ;; PAPER EXAMPLES
