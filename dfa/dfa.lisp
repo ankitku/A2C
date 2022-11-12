@@ -58,10 +58,10 @@
 	(t (apply-trans (cdr trans) st el))))
 
 
-(definecd run-dfa-help (s :state trans :transition-fun w :word) :state
+(definecd run-dfa (s :state trans :transition-fun w :word) :state
   (if (endp w)
       s
-    (run-dfa-help (apply-trans trans s (car w))
+    (run-dfa (apply-trans trans s (car w))
 		  trans
 		  (cdr w))))
 
@@ -69,7 +69,7 @@
   (b* ((trans  (dfa-trans m))
        (start  (dfa-start m))
        (accept (dfa-accept m)))
-    (in (run-dfa-help start trans w) accept)))
+    (in (run-dfa start trans w) accept)))
   
 
 ;; utility functions
