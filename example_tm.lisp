@@ -22,6 +22,14 @@
                   ((q0 nil) . (q3 nil R))
                   ((q3 nil) . (q1 nil L))))
 
+;; (property involution (w :instructor-tm-word)
+;;           :proofs? nil
+;;           :check-contracts? nil
+;;           (== (remove-beginnils (second (runtm-100
+;;                                          (remove-beginnils (second (runtm-100 w *instructor-tm*)))
+;;                                          *instructor-tm*)))
+;;               w))
+
 ;; load acl2s grading infrastructure
 (load "gradescope-acl2s/autograder_raw_code.lsp")
 

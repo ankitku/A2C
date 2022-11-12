@@ -53,8 +53,10 @@
 (definec tm-reject (d :tm) :state
   (seventh d))
 
-
 (defdata tape (list state tape-alphabet tape-alphabet))
+
+(definecd left-of-head (tape :tape) :tape-alphabet
+  (reverse (second tape)))
 
 (defthm tape-condition
   (implies (tapep m)
@@ -106,16 +108,12 @@
   (equal (car (run-tm input tm))
 	 (tm-accept tm)))
 
-(definec remove-beginnils (l :tl) :tl
+(definec remove-initial-nils (l :tl) :tl
   (if (endp l)
       '()
     (if (equal (car l) nil)
-	(remove-beginnils (cdr l))
+	(remove-initial-nils (cdr l))
       l)))
-      
-(definec remove-endnils (l :tl) :tl
-  (reverse (remove-beginnils (reverse l))))
-
 
 (defconst *tm-test*
   (list '(q0 q1 q2)

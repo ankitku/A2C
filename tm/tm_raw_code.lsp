@@ -123,17 +123,15 @@
 		(prefixp (cdr exp) (cdr seq))))))
 
 (defun check-tm-output (f1 expected w)
-  (let* ((tm1 (eval (with-open-file (infile f1) (read infile))))
+  (b* ((tm1 (eval (with-open-file (infile f1) (read infile))))
 	 (p (if (consp tm1)
 		(format t "[~%~A ACCEPTED~%" (car tm1))
 	      nil))
 	 (res (run-tm w (cdr tm1))))
-    ;;start including output from here
-    ;;check if ended in accept state and prefix of left tape matches the expected output
     (if (and (equal (car res) t)
-	     (prefixp expected (remove-forward-nils (cdr res))))
-        (format t "Passed test case]")
-      (format t "Failed test case]"))))
+	     (== expected (remove-forward-nils (left-of-head res))))
+        (cons t "Passed test case]")
+      (cons nil "Failed test case]"))))
 
 (defun query-alphabet-equal (tm1-name tm2-name)
   (let ((da1 (gen-symb "~a-alphabet" tm1-name))
@@ -170,11 +168,10 @@
         (cons nil "Incorrect alphabet provided."))
        (res (itest?-query
              `acl2s::(=> (,dn w)
-                         (== (remove-beginnils (second (run-tm w ,tm1)))
-                             (remove-beginnils (second (run-tm w ,tm2)))))))
+                         (== (remove-initial-nils (left-of-head (run-tm w ,tm1)))
+                             (remove-initial-nils (left-of-head (run-tm w ,tm2)))))))
        ((when (car res))
-        (cons nil (format nil "Transition function error. The following words
-  were misclassified :~% ~a" (mapcar #'cadar (cadadr res))))))
+        (cons nil (format nil "Incorrect output produced when running submitted TM on the following words :~% ~a" (mapcar #'cadar (cadadr res))))))
     (cons t (format nil "~a is correct." tm2-name))))
 
 #|
