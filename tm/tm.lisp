@@ -93,7 +93,7 @@
 	(t (tmstep m (cdr trx)))))
 
 
-(definec runtm-help (n :nat m :tape tm :tm ) :tape
+(definecd runtm-help (n :nat m :tape tm :tm ) :tape
   :skip-tests t
   (declare (xargs :measure n))
   (let ((m2 (tmstep m (tm-trans tm))))
@@ -102,6 +102,7 @@
 
 
 (definec run-tm (input :tape-word tm :tm) :tape
+  :timeout 600
   (runtm-help 100 (list (tm-start tm) nil input) tm))
 
 (definec accept-tm (input :tape-word tm :tm) :boolean
@@ -115,24 +116,31 @@
 	(remove-initial-nils (cdr l))
       l)))
 
+(definec remove-final-nils (l :tl) :tl
+  (reverse (remove-initial-nils (reverse l))))
+
 (defconst *tm-test*
   (list '(q0 q1 q2)
-        '( #\1 #\0 )
-	'( #\1 #\0 nil )
-	'(((q0 #\1) . (q0 #\0 R))
-	  ((q0 #\0) . (q0 #\1 R))
+        '( 1 0 )
+	'( 1 0 nil )
+	'(((q0 1) . (q0 0 R))
+	  ((q0 0) . (q0 1 R))
 	  ((q0 nil) . (q1 nil R)))
 	'q0
 	'q1
 	'q2))
 
 
+(check= (remove-final-nils (left-of-head (run-tm '(1 0 1 1 1 0 1 0) *tm-test*)))
+        '(0 1 0 0 0 1 0 1))
+
+
 (defconst *tm-test2*
   (list '(q0 q1 q2)
-        '( #\1 #\0 )
-	'( #\1 #\0 nil )
-	'(((q0 #\1) . (q0 #\0 R))
-	  ((q0 #\0) . (q0 #\0 R))
+        '( 1 0 )
+	'( 1 0 nil )
+	'(((q0 1) . (q0 0 R))
+	  ((q0 0) . (q0 0 R))
 	  ((q0 nil) . (q1 nil R)))
 	'q0
 	'q1

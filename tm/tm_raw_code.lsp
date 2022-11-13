@@ -168,8 +168,8 @@
         (cons nil "Incorrect alphabet provided."))
        (res (itest?-query
              `acl2s::(=> (,dn w)
-                         (== (remove-initial-nils (left-of-head (run-tm w ,tm1)))
-                             (remove-initial-nils (left-of-head (run-tm w ,tm2)))))))
+                         (== (remove-final-nils (left-of-head (run-tm w ,tm1)))
+                             (remove-final-nils (left-of-head (run-tm w ,tm2)))))))
        ((when (car res))
         (cons nil (format nil "Incorrect output produced when running submitted TM on the following words :~% ~a" (mapcar #'cadar (cadadr res))))))
     (cons t (format nil "~a is correct." tm2-name))))
